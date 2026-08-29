@@ -127,6 +127,8 @@ def send_registration_otp(req: SendRegistrationOTPRequest):
         "success": True,
         "message": f"A 6-digit verification code has been dispatched to {req.email}.",
         "email": req.email,
+        "email_sent": bool(email_sent),
+        "code": code if not email_sent else None,
         "expires_in_minutes": 15
     }
 
@@ -385,6 +387,7 @@ def forgot_password(req: ForgotPasswordRequest):
         "message": f"A 6-digit verification code has been dispatched to {clean_email}.",
         "email": clean_email,
         "email_sent": bool(email_sent),
+        "code": code if not email_sent else None,
         "expires_in_minutes": 30
     }
 
