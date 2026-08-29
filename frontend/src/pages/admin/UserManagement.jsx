@@ -103,6 +103,23 @@ export default function UserManagement() {
     u.organization?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const [otpModalOpen, setOtpModalOpen] = useState(false);
+  const [activeOtps, setActiveOtps] = useState({ registration_otps: [], password_resets: [] });
+  const [loadingOtps, setLoadingOtps] = useState(false);
+
+  const handleOpenOtpModal = async () => {
+    setOtpModalOpen(true);
+    setLoadingOtps(true);
+    try {
+      const data = await adminService.getActiveOtps();
+      setActiveOtps(data || { registration_otps: [], password_resets: [] });
+    } catch (err) {
+      console.error("Failed to load active OTPs:", err);
+    } finally {
+      setLoadingOtps(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -114,13 +131,24 @@ export default function UserManagement() {
           </p>
         </div>
 
-        <button
-          onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all font-mono self-start sm:self-auto"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Provision New User</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleOpenOtpModal}
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-slate-900 border border-brand-500/30 text-brand-400 hover:bg-brand-500/10 transition-all font-mono"
+            title="View Live Registration & Reset OTPs"
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span>Live Active OTPs</span>
+          </button>
+
+          <button
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all font-mono"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Provision New User</span>
+          </button>
+        </div>
       </div>
 
       {/* Search Toolbar */}
@@ -324,6 +352,92 @@ export default function UserManagement() {
                 {creating ? 'Creating Account...' : 'Confirm Account Provisioning'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Live Active OTPs Modal (Super Admin Real-Time Verification Oversight) */}
+      {otpModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-2xl shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-white">Live Active Verification OTPs</h2>
+                  <p className="text-[11px] text-slate-400">Real-time unexpired 6-digit codes for registration & password resets</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenOtpModal}
+                  disabled={loadingOtps}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+                >
+                  {loadingOtps ? 'Refreshing...' : '🔄 Refresh'}
+                </button>
+                <button
+                  onClick={() => setOtpModalOpen(false)}
+                  className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
+              <div>
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">
+                  Registration Verification Codes (Pending)
+                </h3>
+                {activeOtps.registration_otps?.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic p-3 bg-slate-950/50 rounded-xl border border-slate-800">
+                    No pending registration OTPs at this moment.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-slate-800 border border-slate-800 rounded-xl bg-slate-950/60 overflow-hidden">
+                    {(activeOtps.registration_otps || []).map((item, idx) => (
+                      <div key={idx} className="p-3 flex items-center justify-between gap-4 text-xs">
+                        <div>
+                          <p className="font-bold text-white">{item.email}</p>
+                          <p className="text-[10px] text-slate-400">Created: {new Date(item.created_at).toLocaleTimeString()}</p>
+                        </div>
+                        <div className="px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-sm font-bold tracking-widest">
+                          {item.code}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">
+                  Password Reset Codes (Pending)
+                </h3>
+                {activeOtps.password_resets?.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic p-3 bg-slate-950/50 rounded-xl border border-slate-800">
+                    No pending password reset OTPs at this moment.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-slate-800 border border-slate-800 rounded-xl bg-slate-950/60 overflow-hidden">
+                    {(activeOtps.password_resets || []).map((item, idx) => (
+                      <div key={idx} className="p-3 flex items-center justify-between gap-4 text-xs">
+                        <div>
+                          <p className="font-bold text-white">{item.email}</p>
+                          <p className="text-[10px] text-slate-400">Created: {new Date(item.created_at).toLocaleTimeString()}</p>
+                        </div>
+                        <div className="px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono text-sm font-bold tracking-widest">
+                          {item.code}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

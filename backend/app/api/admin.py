@@ -209,3 +209,29 @@ def submit_feedback(req: FeedbackCreateRequest, payload: Dict[str, Any] = Depend
         message=req.message
     )
     return item
+
+@router.get("/active-otps")
+def get_active_otps(admin: Dict[str, Any] = Depends(require_admin)):
+    """Returns list of active, unexpired verification OTPs for Super Admin troubleshooting."""
+    from datetime import datetime
+    
+    # 1. MongoDB Atlas
+    from app.db.mongodb import get_mongo_db
+    db = get_mongo_db()
+    if db is not None:
+        try:
+            otps = list(db.registration_otps.find({"used": 0}, {"_id": 0}).sort("created_at", -1).limit(30))
+            resets = list(db.password_resets.find({"used": 0}, {"_id": 0}).sort("created_at", -1).limit(30))
+            return {"registration_otps": otps, "password_resets": resets}
+        except Exception:
+            pass
+    
+    # 2. SQLite Fallback
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT email, code, created_at, expires_at FROM registration_otps WHERE used = 0 ORDER BY created_at DESC LIMIT 30")
+    otps = [dict(row) for row in c.fetchall()]
+    c.execute("SELECT email, code, created_at, expires_at FROM password_resets WHERE used = 0 ORDER BY created_at DESC LIMIT 30")
+    resets = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return {"registration_otps": otps, "password_resets": resets}

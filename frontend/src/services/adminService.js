@@ -59,6 +59,16 @@ export const adminService = {
   submitFeedback: async (feedbackData) => {
     const response = await api.post('/admin/feedback', feedbackData);
     return response.data;
+  },
+
+  getActiveOtps: async () => {
+    const response = await api.get('/admin/active-otps');
+    return response.data;
+  },
+
+  purgeAllData: async () => {
+    const response = await api.delete('/admin/purge-all-data');
+    return response.data;
   }
 };
 
