@@ -4,29 +4,40 @@ import { authService } from '../services/authService';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(authService.getCurrentUser());
-  const [token, setToken] = useState(authService.getToken());
+  const [user, setUser] = useState(() => authService.getCurrentUser());
+  const [token, setToken] = useState(() => authService.getToken());
   const [loading, setLoading] = useState(true);
 
+  // Verify stored session once on initial app mount
   useEffect(() => {
     const verifyUser = async () => {
-      if (token) {
+      const storedToken = authService.getToken();
+      const storedUser = authService.getCurrentUser();
+
+      if (storedToken) {
         try {
           const userData = await authService.getMe();
           setUser(userData);
           localStorage.setItem('user', JSON.stringify(userData));
         } catch (error) {
-          console.error("Token verification failed:", error);
-          authService.logout();
-          setUser(null);
-          setToken(null);
+          // If server explicitly returned 401 Unauthorized, invalidate token
+          if (error.response?.status === 401) {
+            console.warn("Session expired (401), signing out...");
+            authService.logout();
+            setUser(null);
+            setToken(null);
+          } else if (storedUser) {
+            // Keep existing cached session during temporary network latency
+            setUser(storedUser);
+            setToken(storedToken);
+          }
         }
       }
       setLoading(false);
     };
 
     verifyUser();
-  }, [token]);
+  }, []);
 
   const login = async (email, password) => {
     const data = await authService.login(email, password);
