@@ -1,0 +1,332 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Users,
+  Search,
+  UserPlus,
+  Shield,
+  UserCheck,
+  UserX,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  Lock,
+  Mail,
+  Building
+} from 'lucide-react';
+import { adminService } from '../../services/adminService';
+
+export default function UserManagement() {
+  const [users, setUsers] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // New user form state
+  const [newUser, setNewUser] = useState({
+    full_name: '',
+    email: '',
+    password: '',
+    organization: '',
+    role: 'user'
+  });
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
+
+  const fetchUsers = async () => {
+    try {
+      const data = await adminService.getUsers();
+      setUsers(data);
+    } catch (err) {
+      console.error("Failed to load users:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleToggleStatus = async (user) => {
+    try {
+      const newStatus = !user.is_active;
+      await adminService.updateUserStatus(user.id, newStatus);
+      setUsers(users.map(u => u.id === user.id ? { ...u, is_active: newStatus ? 1 : 0 } : u));
+    } catch (err) {
+      alert("Failed to update status");
+    }
+  };
+
+  const handleToggleRole = async (user) => {
+    const newRole = user.role === 'admin' ? 'user' : 'admin';
+    if (confirm(`Change role of ${user.full_name} to ${newRole.toUpperCase()}?`)) {
+      try {
+        await adminService.updateUserRole(user.id, newRole);
+        setUsers(users.map(u => u.id === user.id ? { ...u, role: newRole } : u));
+      } catch (err) {
+        alert("Failed to update role");
+      }
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    if (confirm(`Permanently delete user account "${user.email}"?`)) {
+      try {
+        await adminService.deleteUser(user.id);
+        setUsers(users.filter(u => u.id !== user.id));
+      } catch (err) {
+        alert(err.response?.data?.detail || "Failed to delete user");
+      }
+    }
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    setCreating(true);
+    setError('');
+    try {
+      const created = await adminService.createUser(newUser);
+      setUsers([created, ...users]);
+      setModalOpen(false);
+      setNewUser({ full_name: '', email: '', password: '', organization: '', role: 'user' });
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to create user");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const filteredUsers = users.filter(u =>
+    u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.organization?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6 pb-12">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div>
+          <h1 className="text-2xl font-extrabold text-white">User Administration</h1>
+          <p className="text-xs text-slate-400">
+            Manage organizational accounts, roles, access states, and user permissions
+          </p>
+        </div>
+
+        <button
+          onClick={() => setModalOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all font-mono self-start sm:self-auto"
+        >
+          <UserPlus className="w-4 h-4" />
+          <span>Provision New User</span>
+        </button>
+      </div>
+
+      {/* Search Toolbar */}
+      <div className="glass-panel rounded-2xl p-4 border-slate-800 flex items-center justify-between">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name, email, or org..."
+            className="w-full pl-10 pr-4 py-2 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+          />
+        </div>
+        <span className="text-xs text-slate-400 font-mono hidden sm:inline">
+          {filteredUsers.length} User {filteredUsers.length === 1 ? 'Record' : 'Records'}
+        </span>
+      </div>
+
+      {/* User Table */}
+      <div className="glass-panel rounded-3xl p-6 border-slate-800 overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead className="text-slate-400 uppercase tracking-wider border-b border-slate-800/80">
+            <tr>
+              <th className="pb-3 font-semibold">User</th>
+              <th className="pb-3 font-semibold">Organization</th>
+              <th className="pb-3 font-semibold">Role</th>
+              <th className="pb-3 font-semibold">Status</th>
+              <th className="pb-3 font-semibold">Created Date</th>
+              <th className="pb-3 font-semibold text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800/60">
+            {filteredUsers.map((u) => (
+              <tr key={u.id} className="hover:bg-slate-900/60 transition-colors">
+                <td className="py-3.5 pr-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-white text-xs uppercase">
+                      {u.full_name?.charAt(0) || 'U'}
+                    </div>
+                    <div>
+                      <p className="font-bold text-white">{u.full_name}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">{u.email}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="py-3.5 text-slate-300 font-medium">
+                  {u.organization || 'General Team'}
+                </td>
+                <td className="py-3.5">
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase ${
+                    u.role === 'admin'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      : 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
+                  }`}>
+                    {u.role}
+                  </span>
+                </td>
+                <td className="py-3.5">
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                    u.is_active
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                  }`}>
+                    {u.is_active ? 'Active' : 'Suspended'}
+                  </span>
+                </td>
+                <td className="py-3.5 text-slate-400 font-mono text-[11px]">
+                  {new Date(u.created_at).toLocaleDateString()}
+                </td>
+                <td className="py-3.5 text-right space-x-1.5">
+                  {u.email === 'kancharladhanush2003@gmail.com' ? (
+                    <span className="px-3 py-1.5 rounded-lg text-xs font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30">
+                      Master Admin (Owner)
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleToggleStatus(u)}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                          u.is_active
+                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                            : 'bg-emerald-600 text-white hover:bg-emerald-500'
+                        }`}
+                        title={u.is_active ? "Suspend account" : "Activate account"}
+                      >
+                        {u.is_active ? 'Suspend' : 'Activate'}
+                      </button>
+
+                      <button
+                        onClick={() => handleToggleRole(u)}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                          u.role === 'admin'
+                            ? 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700'
+                            : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-bold'
+                        }`}
+                        title={u.role === 'admin' ? "Demote to Standard User" : "Grant Admin Access"}
+                      >
+                        {u.role === 'admin' ? 'Demote to User' : 'Promote to Admin'}
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteUser(u)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10"
+                        title="Delete User"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Provision User Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="glass-panel rounded-3xl p-6 sm:p-8 border-slate-700 max-w-md w-full space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h2 className="text-lg font-bold text-white">Provision New Account</h2>
+              <button onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {error && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newUser.full_name}
+                  onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
+                  placeholder="e.g. Rachel Adams"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  placeholder="rachel@company.com"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Temporary Password</label>
+                <input
+                  type="password"
+                  required
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  placeholder="Min 6 characters"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Organization</label>
+                  <input
+                    type="text"
+                    value={newUser.organization}
+                    onChange={(e) => setNewUser({ ...newUser, organization: e.target.value })}
+                    placeholder="Legal Team"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">System Role</label>
+                  <select
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="user">Standard User</option>
+                    <option value="admin">Administrator</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={creating}
+                className="w-full py-3 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all font-mono mt-2"
+              >
+                {creating ? 'Creating Account...' : 'Confirm Account Provisioning'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
