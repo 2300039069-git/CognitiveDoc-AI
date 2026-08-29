@@ -141,6 +141,17 @@ def delete_user(user_id: str, admin: Dict[str, Any] = Depends(require_admin)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return {"success": True, "message": "User account removed"}
 
+@router.delete("/users/by-email/{email}")
+def delete_user_by_email(email: str, admin: Dict[str, Any] = Depends(require_admin)):
+    clean_email = email.lower().strip()
+    u = UserRepository.get_by_email(clean_email)
+    if not u:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if u["id"] == admin["sub"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete your own administrative account")
+    UserRepository.delete_user(u["id"])
+    return {"success": True, "message": f"User {clean_email} permanently removed"}
+
 @router.get("/documents")
 def list_all_documents(admin: Dict[str, Any] = Depends(require_admin)):
     docs = DocumentRepository.get_all_documents()
