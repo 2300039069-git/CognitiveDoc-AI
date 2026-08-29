@@ -10,25 +10,7 @@ def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: 
     """
     Dispatches transactional OTP emails using Resend API (if configured) or optimized Gmail SMTP.
     """
-    # 1. Try Resend Transactional API
-    if RESEND_API_KEY:
-        try:
-            import resend
-            resend.api_key = RESEND_API_KEY
-            r = resend.Emails.send({
-                "from": "CognitiveDoc AI <onboarding@resend.dev>",
-                "to": clean_to,
-                "subject": subject,
-                "html": html_content,
-                "text": plain_text
-            })
-            logger.info(f"Email sent via Resend API to {clean_to}: {r}")
-            print(f"\n[RESEND API SENT] >>> Successfully dispatched OTP to {clean_to} (Code: {code})\n")
-            return True
-        except Exception as e:
-            logger.warning(f"Resend API dispatch error: {e}. Falling back to SMTP...")
-
-    # 2. Try High-Deliverability SMTP (Gmail / Custom SMTP)
+    # 1. Primary: High-Deliverability Direct Gmail SMTP
     if SMTP_USER and SMTP_PASSWORD:
         try:
             msg = EmailMessage()
@@ -53,13 +35,30 @@ def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: 
                 server.login(SMTP_USER, SMTP_PASSWORD)
                 server.send_message(msg)
             
-            logger.info(f"OTP email dispatched via SMTP to {clean_to}")
-            print(f"\n[SMTP SENT] >>> Dispatched OTP email to {clean_to} (Code: {code})\n")
+            logger.info(f"OTP email dispatched via Gmail SMTP to {clean_to}")
+            print(f"\n[GMAIL SMTP SENT] >>> Dispatched OTP email to {clean_to} (Code: {code})\n")
             return True
         except Exception as e:
-            logger.error(f"SMTP Dispatch Error to {clean_to}: {str(e)}")
+            logger.error(f"Gmail SMTP Dispatch Error to {clean_to}: {str(e)}")
             print(f"\n[SMTP ERROR] Could not dispatch to {clean_to}: {str(e)} (Code: {code})\n")
-            return False
+
+    # 2. Fallback: Resend Transactional API
+    if RESEND_API_KEY:
+        try:
+            import resend
+            resend.api_key = RESEND_API_KEY
+            r = resend.Emails.send({
+                "from": "CognitiveDoc AI <onboarding@resend.dev>",
+                "to": clean_to,
+                "subject": subject,
+                "html": html_content,
+                "text": plain_text
+            })
+            logger.info(f"Email sent via Resend API to {clean_to}: {r}")
+            print(f"\n[RESEND API SENT] >>> Successfully dispatched OTP to {clean_to} (Code: {code})\n")
+            return True
+        except Exception as e:
+            logger.warning(f"Resend API dispatch error: {e}")
 
     print(f"\n[LOCAL OTP LOG] OTP for {clean_to}: {code}\n")
     return False
