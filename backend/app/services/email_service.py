@@ -8,9 +8,11 @@ logger = logging.getLogger(__name__)
 
 def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: str, code: str) -> bool:
     """
-    Dispatches transactional OTP emails using Resend API (if configured) or optimized Gmail SMTP.
+    Dispatches transactional OTP emails using SSL 465 (Cloud-optimized), TLS 587, or Resend API.
     """
-    # 1. Primary: High-Deliverability Direct Gmail SMTP
+    import ssl
+    
+    # 1. Tier 1: Gmail SMTP SSL on Port 465 (Most reliable for cloud hosting like Render/Linux)
     if SMTP_USER and SMTP_PASSWORD:
         try:
             msg = EmailMessage()
@@ -21,7 +23,6 @@ def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: 
             msg["Date"] = formatdate(localtime=True)
             msg["Message-ID"] = make_msgid(domain="gmail.com")
             
-            # Anti-Spam Headers (Tells email filters this is a legitimate transactional notification)
             msg["Auto-Submitted"] = "auto-generated"
             msg["X-Auto-Response-Suppress"] = "All"
             msg["X-Priority"] = "3"
@@ -30,19 +31,42 @@ def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: 
             msg.set_content(plain_text)
             msg.add_alternative(html_content, subtype="html")
 
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=12) as server:
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context, timeout=12) as server:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(msg)
+            
+            logger.info(f"OTP email dispatched via Gmail SMTP SSL (465) to {clean_to}")
+            print(f"\n[GMAIL SSL SENT] >>> Dispatched OTP email to {clean_to} (Code: {code})\n")
+            return True
+        except Exception as e:
+            logger.warning(f"Gmail SSL 465 failed for {clean_to}: {str(e)}. Retrying with Port 587...")
+
+        # 2. Tier 2: Gmail SMTP STARTTLS on Port 587
+        try:
+            msg = EmailMessage()
+            msg["Subject"] = subject
+            msg["From"] = f"{SMTP_FROM_NAME} <{SMTP_USER}>"
+            msg["To"] = clean_to
+            msg["Reply-To"] = SMTP_USER
+            msg["Date"] = formatdate(localtime=True)
+            msg["Message-ID"] = make_msgid(domain="gmail.com")
+            
+            msg.set_content(plain_text)
+            msg.add_alternative(html_content, subtype="html")
+
+            with smtplib.SMTP(SMTP_HOST or "smtp.gmail.com", SMTP_PORT or 587, timeout=12) as server:
                 server.starttls()
                 server.login(SMTP_USER, SMTP_PASSWORD)
                 server.send_message(msg)
             
-            logger.info(f"OTP email dispatched via Gmail SMTP to {clean_to}")
-            print(f"\n[GMAIL SMTP SENT] >>> Dispatched OTP email to {clean_to} (Code: {code})\n")
+            logger.info(f"OTP email dispatched via Gmail SMTP TLS (587) to {clean_to}")
+            print(f"\n[GMAIL TLS SENT] >>> Dispatched OTP email to {clean_to} (Code: {code})\n")
             return True
         except Exception as e:
-            logger.error(f"Gmail SMTP Dispatch Error to {clean_to}: {str(e)}")
-            print(f"\n[SMTP ERROR] Could not dispatch to {clean_to}: {str(e)} (Code: {code})\n")
+            logger.warning(f"Gmail TLS 587 failed for {clean_to}: {str(e)}")
 
-    # 2. Fallback: Resend Transactional API
+    # 3. Tier 3: Resend Transactional API
     if RESEND_API_KEY:
         try:
             import resend
