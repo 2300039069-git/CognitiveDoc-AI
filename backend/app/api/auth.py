@@ -316,7 +316,6 @@ def forgot_password(req: ForgotPasswordRequest):
         "message": f"A 6-digit verification code has been dispatched to {clean_email}.",
         "email": clean_email,
         "email_sent": bool(email_sent),
-        "code": code,
         "expires_in_minutes": 30
     }
 
