@@ -143,7 +143,8 @@ export const audioService = {
       const chunkText = audioQueue[currentQueueIndex];
       currentQueueIndex++;
 
-      const ttsUrl = `/api/ai/tts?text=${encodeURIComponent(chunkText)}&lang=${targetLang}`;
+      const baseUrl = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
+      const ttsUrl = `${baseUrl}/ai/tts?text=${encodeURIComponent(chunkText)}&lang=${targetLang}`;
       const audio = new Audio(ttsUrl);
       currentAudio = audio;
 
@@ -152,13 +153,29 @@ export const audioService = {
       };
 
       audio.onerror = () => {
-        console.warn('Queue audio chunk playback failed, skipping to next:', chunkText);
-        playNextChunk();
+        console.warn('Backend neural TTS streaming error, falling back to Web Speech API...');
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(chunkText);
+          utterance.lang = preferredLangCode || 'en-US';
+          utterance.onend = () => playNextChunk();
+          utterance.onerror = () => playNextChunk();
+          window.speechSynthesis.speak(utterance);
+        } else {
+          playNextChunk();
+        }
       };
 
       audio.play().catch((err) => {
-        console.warn('Playback error:', err);
-        playNextChunk();
+        console.warn('Audio play error, using browser speech synthesis:', err);
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(chunkText);
+          utterance.lang = preferredLangCode || 'en-US';
+          utterance.onend = () => playNextChunk();
+          utterance.onerror = () => playNextChunk();
+          window.speechSynthesis.speak(utterance);
+        } else {
+          playNextChunk();
+        }
       });
     };
 
