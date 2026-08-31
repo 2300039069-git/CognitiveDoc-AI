@@ -121,14 +121,12 @@ def send_registration_otp(req: SendRegistrationOTPRequest):
     code = RegistrationOTPRepository.create_otp(req.email)
     email_sent = send_registration_otp_email(req.email, req.full_name, code)
     
-    print(f"\n[REGISTRATION OTP] Verification code for {req.email}: {code} (Valid for 15 mins)\n")
+    print(f"\n[REGISTRATION OTP] Verification code generated for {req.email} (Valid for 15 mins)\n")
     
     return {
         "success": True,
-        "message": f"A 6-digit verification code has been dispatched to {req.email}.",
+        "message": f"A 6-digit verification code has been dispatched directly to {req.email}. Please check your email inbox.",
         "email": req.email,
-        "email_sent": bool(email_sent),
-        "code": code if not email_sent else None,
         "expires_in_minutes": 15
     }
 
@@ -380,14 +378,12 @@ def forgot_password(req: ForgotPasswordRequest):
     # Attempt email dispatch via Resend / SMTP
     email_sent = send_password_reset_email(clean_email, code)
     
-    print(f"\n[SECURITY ALERT] Password Reset Code for {clean_email}: {code} (Valid for 30 mins)\n")
+    print(f"\n[SECURITY ALERT] Password Reset Code generated for {clean_email} (Valid for 30 mins)\n")
 
     return {
         "success": True,
-        "message": f"A 6-digit verification code has been dispatched to {clean_email}.",
+        "message": f"A 6-digit verification code has been dispatched directly to {clean_email}. Please check your email inbox.",
         "email": clean_email,
-        "email_sent": bool(email_sent),
-        "code": code if not email_sent else None,
         "expires_in_minutes": 30
     }
 

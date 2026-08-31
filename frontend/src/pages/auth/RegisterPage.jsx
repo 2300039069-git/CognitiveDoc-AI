@@ -98,20 +98,16 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const res = await api.post('/auth/send-registration-otp', {
+      await api.post('/auth/send-registration-otp', {
         email: email.trim().toLowerCase(),
         full_name: fullName.trim()
       });
 
       setStep(2);
+      setOtpCode('');
       setResendTimer(30);
       setCanResend(false);
-      if (res.data.code) {
-        setOtpCode(String(res.data.code));
-        setSuccessMsg(`Verification Code: ${res.data.code} (Auto-filled for instant verification)`);
-      } else {
-        setSuccessMsg(`A 6-digit verification code has been sent directly to ${email}. Please check your email inbox.`);
-      }
+      setSuccessMsg(`A 6-digit verification code has been dispatched directly to ${email}. Please check your email inbox.`);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to send verification code. Please check your email.');
     } finally {
@@ -162,19 +158,14 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await api.post('/auth/send-registration-otp', {
+      await api.post('/auth/send-registration-otp', {
         email: email.trim().toLowerCase(),
         full_name: fullName.trim()
       });
 
       setResendTimer(30);
       setCanResend(false);
-      if (res.data.code) {
-        setOtpCode(String(res.data.code));
-        setSuccessMsg(`New Verification Code: ${res.data.code} (Auto-filled)`);
-      } else {
-        setSuccessMsg(`A new 6-digit verification code has been sent to ${email}.`);
-      }
+      setSuccessMsg(`A new 6-digit verification code has been sent directly to ${email}. Please check your inbox.`);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to resend code.');
     } finally {

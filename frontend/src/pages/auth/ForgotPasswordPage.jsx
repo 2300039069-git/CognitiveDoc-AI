@@ -46,14 +46,9 @@ export default function ForgotPasswordPage() {
       }
 
       // 2. Dispatch 6-digit OTP code through backend
-      const res = await authService.forgotPassword(email.trim());
-      if (res.code) {
-        setVerificationCode(String(res.code));
-        setSuccessMsg(`Verification code: ${res.code} (Auto-filled for instant password reset)`);
-      } else {
-        setVerificationCode('');
-        setSuccessMsg(`A 6-digit verification code has been dispatched to ${email.trim()}. Please check your email inbox.`);
-      }
+      await authService.forgotPassword(email.trim());
+      setVerificationCode('');
+      setSuccessMsg(`A 6-digit verification code has been dispatched directly to ${email.trim()}. Please check your email inbox.`);
       setStep('verify_and_reset');
     } catch (err) {
       setError(err.response?.data?.detail || "No account found registered with this email address.");

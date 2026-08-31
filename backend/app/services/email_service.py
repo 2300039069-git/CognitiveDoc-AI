@@ -8,11 +8,27 @@ logger = logging.getLogger(__name__)
 
 def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: str, code: str) -> bool:
     """
-    Dispatches transactional OTP emails using SSL 465 (Cloud-optimized), TLS 587, or Resend API.
+    Dispatches transactional OTP emails using Resend API (Primary) with Google SMTP backup.
     """
-    import ssl
-    
-    # 1. Tier 1: Gmail SMTP STARTTLS on Port 587 (Fastest & most reliable)
+    # 1. Tier 1: Resend Transactional HTTPS API (Cloud-native Port 443)
+    if RESEND_API_KEY:
+        try:
+            import resend
+            resend.api_key = RESEND_API_KEY
+            r = resend.Emails.send({
+                "from": "CognitiveDoc AI <onboarding@resend.dev>",
+                "to": clean_to,
+                "subject": subject,
+                "html": html_content,
+                "text": plain_text
+            })
+            logger.info(f"Email dispatched via Resend API to {clean_to}: {r}")
+            print(f"\n[RESEND API SENT] >>> Dispatched OTP email via Resend to {clean_to}\n")
+            return True
+        except Exception as e:
+            logger.warning(f"Resend API dispatch notice for {clean_to}: {e}. Retrying via SMTP...")
+
+    # 2. Tier 2: Gmail SMTP STARTTLS on Port 587 (Backup)
     if SMTP_USER and SMTP_PASSWORD:
         try:
             msg = EmailMessage()
@@ -31,60 +47,18 @@ def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: 
             msg.set_content(plain_text)
             msg.add_alternative(html_content, subtype="html")
 
-            with smtplib.SMTP(SMTP_HOST or "smtp.gmail.com", SMTP_PORT or 587, timeout=5) as server:
+            with smtplib.SMTP(SMTP_HOST or "smtp.gmail.com", SMTP_PORT or 587, timeout=6) as server:
                 server.starttls()
                 server.login(SMTP_USER, SMTP_PASSWORD)
                 server.send_message(msg)
             
             logger.info(f"OTP email dispatched via Gmail SMTP TLS (587) to {clean_to}")
-            print(f"\n[GMAIL TLS SENT] >>> Dispatched OTP email to {clean_to} (Code: {code})\n")
+            print(f"\n[GMAIL TLS SENT] >>> Dispatched OTP email to {clean_to}\n")
             return True
         except Exception as e:
-            logger.warning(f"Gmail TLS 587 failed for {clean_to}: {str(e)}. Retrying with Port 465 SSL...")
+            logger.warning(f"Gmail TLS 587 failed for {clean_to}: {str(e)}")
 
-        # 2. Tier 2: Gmail SMTP SSL on Port 465
-        try:
-            msg = EmailMessage()
-            msg["Subject"] = subject
-            msg["From"] = f"{SMTP_FROM_NAME} <{SMTP_USER}>"
-            msg["To"] = clean_to
-            msg["Reply-To"] = SMTP_USER
-            msg["Date"] = formatdate(localtime=True)
-            msg["Message-ID"] = make_msgid(domain="gmail.com")
-            
-            msg.set_content(plain_text)
-            msg.add_alternative(html_content, subtype="html")
-
-            context = ssl.create_default_context()
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context, timeout=5) as server:
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.send_message(msg)
-            
-            logger.info(f"OTP email dispatched via Gmail SMTP SSL (465) to {clean_to}")
-            print(f"\n[GMAIL SSL SENT] >>> Dispatched OTP email to {clean_to} (Code: {code})\n")
-            return True
-        except Exception as e:
-            logger.warning(f"Gmail SSL 465 failed for {clean_to}: {str(e)}")
-
-    # 3. Tier 3: Resend Transactional API
-    if RESEND_API_KEY:
-        try:
-            import resend
-            resend.api_key = RESEND_API_KEY
-            r = resend.Emails.send({
-                "from": "CognitiveDoc AI <onboarding@resend.dev>",
-                "to": clean_to,
-                "subject": subject,
-                "html": html_content,
-                "text": plain_text
-            })
-            logger.info(f"Email sent via Resend API to {clean_to}: {r}")
-            print(f"\n[RESEND API SENT] >>> Successfully dispatched OTP to {clean_to} (Code: {code})\n")
-            return True
-        except Exception as e:
-            logger.warning(f"Resend API dispatch error: {e}")
-
-    print(f"\n[LOCAL OTP LOG] OTP for {clean_to}: {code}\n")
+    print(f"\n[EMAIL DISPATCH NOTICE] Handled dispatch for {clean_to}\n")
     return False
 
 def send_registration_otp_email(to_email: str, full_name: str, code: str) -> bool:
