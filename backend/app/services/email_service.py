@@ -4,16 +4,41 @@ from email.message import EmailMessage
 from email.utils import formatdate, make_msgid
 from app.core.config import (
     SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM_NAME,
-    RESEND_API_KEY, RESEND_FROM_EMAIL
+    RESEND_API_KEY, RESEND_FROM_EMAIL, BREVO_API_KEY, SENDGRID_API_KEY, EMAIL_WEBHOOK_URL
 )
 
 logger = logging.getLogger(__name__)
 
 def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: str, code: str) -> bool:
     """
-    Dispatches transactional OTP emails using Resend API (Primary) with Google SMTP backup.
+    Dispatches transactional OTP emails using HTTPS REST APIs (Brevo, Resend, SendGrid) and SMTP.
     """
-    # 1. Tier 1: Resend Transactional HTTPS API (Cloud-native Port 443)
+    import requests
+
+    # 1. Tier 1: Brevo (Sendinblue) HTTPS API (Delivers to ANY Gmail, Yahoo, Outlook worldwide without domain)
+    if BREVO_API_KEY:
+        try:
+            headers = {
+                "accept": "application/json",
+                "api-key": BREVO_API_KEY,
+                "content-type": "application/json"
+            }
+            payload = {
+                "sender": {"name": SMTP_FROM_NAME or "CognitiveDoc AI", "email": "kancharladhanush2003@gmail.com"},
+                "to": [{"email": clean_to}],
+                "subject": subject,
+                "htmlContent": html_content,
+                "textContent": plain_text
+            }
+            r = requests.post("https://api.brevo.com/v3/smtp/email", json=payload, headers=headers, timeout=6)
+            if r.status_code in (200, 201, 202):
+                logger.info(f"OTP email dispatched via Brevo HTTPS to {clean_to}")
+                print(f"\n[BREVO SENT] >>> Dispatched OTP email via Brevo to {clean_to}\n")
+                return True
+        except Exception as e:
+            logger.warning(f"Brevo dispatch error for {clean_to}: {e}")
+
+    # 2. Tier 2: Resend Transactional HTTPS API (Port 443)
     if RESEND_API_KEY:
         try:
             import resend
@@ -30,7 +55,27 @@ def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: 
             print(f"\n[RESEND API SENT] >>> Dispatched OTP email via Resend to {clean_to}\n")
             return True
         except Exception as e:
-            logger.warning(f"Resend API dispatch notice for {clean_to}: {e}. Retrying via SMTP...")
+            logger.warning(f"Resend API dispatch notice for {clean_to}: {e}")
+
+    # 3. Tier 3: SendGrid HTTPS REST API (Port 443)
+    if SENDGRID_API_KEY:
+        try:
+            headers = {
+                "Authorization": f"Bearer {SENDGRID_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "personalizations": [{"to": [{"email": clean_to}]}],
+                "from": {"email": SMTP_USER or "kancharladhanush2003@gmail.com", "name": SMTP_FROM_NAME or "CognitiveDoc AI"},
+                "subject": subject,
+                "content": [{"type": "text/html", "value": html_content}]
+            }
+            r = requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers, timeout=6)
+            if r.status_code in (200, 202):
+                logger.info(f"OTP email dispatched via SendGrid HTTPS to {clean_to}")
+                return True
+        except Exception as e:
+            logger.warning(f"SendGrid dispatch error for {clean_to}: {e}")
 
     # 2. Tier 2: Gmail SMTP STARTTLS on Port 587 (Backup)
     if SMTP_USER and SMTP_PASSWORD:
