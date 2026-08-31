@@ -8,33 +8,39 @@ logger = logging.getLogger(__name__)
 
 _mongo_client: Optional[MongoClient] = None
 _mongo_db: Optional[Database] = None
+_mongo_attempted: bool = False
 
 def get_mongo_client() -> Optional[MongoClient]:
-    """Get or initialize singleton PyMongo MongoClient."""
-    global _mongo_client
+    """Get or initialize singleton PyMongo MongoClient with non-blocking cached state."""
+    global _mongo_client, _mongo_attempted
     if _mongo_client is not None:
         return _mongo_client
 
-    if not MONGODB_URI:
+    if _mongo_attempted:
         return None
 
+    if not MONGODB_URI:
+        _mongo_attempted = True
+        return None
+
+    _mongo_attempted = True
     try:
         import certifi
-        _mongo_client = MongoClient(
+        client = MongoClient(
             MONGODB_URI,
             tlsCAFile=certifi.where(),
-            serverSelectionTimeoutMS=4000,
-            connectTimeoutMS=5000,
-            socketTimeoutMS=5000,
-            maxPoolSize=50,
-            minPoolSize=5
+            serverSelectionTimeoutMS=1500,
+            connectTimeoutMS=1500,
+            socketTimeoutMS=1500,
+            maxPoolSize=20,
+            minPoolSize=1
         )
-        # Test connection with a quick ping
-        _mongo_client.admin.command('ping')
+        client.admin.command('ping')
+        _mongo_client = client
         logger.info(f"Successfully connected to MongoDB Atlas database: {MONGODB_DB_NAME}")
         return _mongo_client
     except Exception as e:
-        logger.warning(f"MongoDB Atlas connection not available ({e}). Using local SQLite fallback.")
+        logger.warning(f"MongoDB Atlas connection not available ({e}). Using ultra-fast SQLite engine.")
         _mongo_client = None
         return None
 
