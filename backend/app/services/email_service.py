@@ -2,7 +2,10 @@ import smtplib
 import logging
 from email.message import EmailMessage
 from email.utils import formatdate, make_msgid
-from app.core.config import SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM_NAME, RESEND_API_KEY
+from app.core.config import (
+    SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM_NAME,
+    RESEND_API_KEY, RESEND_FROM_EMAIL
+)
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +18,9 @@ def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: 
         try:
             import resend
             resend.api_key = RESEND_API_KEY
+            sender = RESEND_FROM_EMAIL if RESEND_FROM_EMAIL else "CognitiveDoc AI <onboarding@resend.dev>"
             r = resend.Emails.send({
-                "from": "CognitiveDoc AI <onboarding@resend.dev>",
+                "from": sender,
                 "to": clean_to,
                 "subject": subject,
                 "html": html_content,

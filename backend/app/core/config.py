@@ -22,8 +22,12 @@ DEFAULT_CHUNK_SIZE = 500  # characters
 DEFAULT_CHUNK_OVERLAP = 100
 DEFAULT_SUMMARY_RATIO = 0.25
 
-# Email & SMTP / Resend API Settings
+# Email & Transactional API Settings (Port 443 HTTPS & SMTP)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "CognitiveDoc AI <onboarding@resend.dev>")
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
+EMAIL_WEBHOOK_URL = os.getenv("EMAIL_WEBHOOK_URL", "")
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
