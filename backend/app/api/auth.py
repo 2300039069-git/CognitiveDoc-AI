@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, BackgroundTasks
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Dict, Any
 from app.db.models import UserRepository
@@ -107,7 +107,7 @@ def direct_reset_password(req: DirectResetPasswordRequest):
     }
 
 @router.post("/send-registration-otp")
-def send_registration_otp(req: SendRegistrationOTPRequest):
+def send_registration_otp(req: SendRegistrationOTPRequest, background_tasks: BackgroundTasks):
     existing = UserRepository.get_by_email(req.email)
     if existing:
         raise HTTPException(
@@ -119,7 +119,7 @@ def send_registration_otp(req: SendRegistrationOTPRequest):
     from app.services.email_service import send_registration_otp_email
     
     code = RegistrationOTPRepository.create_otp(req.email)
-    email_sent = send_registration_otp_email(req.email, req.full_name, code)
+    background_tasks.add_task(send_registration_otp_email, req.email, req.full_name, code)
     
     print(f"\n[REGISTRATION OTP] Verification code generated for {req.email} (Valid for 15 mins)\n")
     
@@ -360,7 +360,7 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 @router.post("/forgot-password")
-def forgot_password(req: ForgotPasswordRequest):
+def forgot_password(req: ForgotPasswordRequest, background_tasks: BackgroundTasks):
     clean_email = req.email.lower().strip()
     user = UserRepository.get_by_email(clean_email)
     if not user:
@@ -374,9 +374,7 @@ def forgot_password(req: ForgotPasswordRequest):
     from app.services.email_service import send_password_reset_email
     
     code = PasswordResetRepository.create_reset_code(clean_email)
-    
-    # Attempt email dispatch via Resend / SMTP
-    email_sent = send_password_reset_email(clean_email, code)
+    background_tasks.add_task(send_password_reset_email, clean_email, code)
     
     print(f"\n[SECURITY ALERT] Password Reset Code generated for {clean_email} (Valid for 30 mins)\n")
 
