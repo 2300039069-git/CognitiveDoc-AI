@@ -76,11 +76,16 @@ class UserRepository:
     def get_by_email(email: str) -> Optional[Dict[str, Any]]:
         clean_email = email.lower().strip()
 
+    @staticmethod
+    def get_by_email(email: str) -> Optional[Dict[str, Any]]:
+        clean_email = email.strip().lower()
+        import re
+
         # Try MongoDB Atlas
         db = get_mongo_db()
         if db is not None:
             try:
-                doc = db.users.find_one({"email": clean_email})
+                doc = db.users.find_one({"email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}})
                 if doc:
                     return mongo_doc_to_dict(doc)
             except Exception:
@@ -89,7 +94,7 @@ class UserRepository:
         # SQLite Fallback
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE email = ?", (clean_email,))
+        cursor.execute("SELECT * FROM users WHERE email = ? COLLATE NOCASE", (clean_email,))
         row = cursor.fetchone()
         conn.close()
         return dict_from_row(row)

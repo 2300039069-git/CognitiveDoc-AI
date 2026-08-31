@@ -132,6 +132,20 @@ def update_user_role(user_id: str, req: RoleUpdateRequest, admin: Dict[str, Any]
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return {"success": True, "message": "User role updated"}
 
+class AdminPasswordResetRequest(BaseModel):
+    new_password: str
+
+@router.put("/users/{user_id}/reset-password")
+def admin_reset_user_password(user_id: str, req: AdminPasswordResetRequest, admin: Dict[str, Any] = Depends(require_admin)):
+    if len(req.new_password) < 6:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must be at least 6 characters")
+    user = UserRepository.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    new_hash = hash_password(req.new_password.strip())
+    UserRepository.update_password(user["email"], new_hash)
+    return {"success": True, "message": f"Password for {user['email']} successfully updated"}
+
 @router.delete("/users/{user_id}")
 def delete_user(user_id: str, admin: Dict[str, Any] = Depends(require_admin)):
     if user_id == admin["sub"]:

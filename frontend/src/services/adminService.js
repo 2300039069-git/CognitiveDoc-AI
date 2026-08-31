@@ -31,6 +31,11 @@ export const adminService = {
     return response.data;
   },
 
+  resetUserPassword: async (userId, newPassword) => {
+    const response = await api.put(`/admin/users/${userId}/reset-password`, { new_password: newPassword });
+    return response.data;
+  },
+
   getDocuments: async () => {
     const response = await api.get('/admin/documents');
     return response.data;

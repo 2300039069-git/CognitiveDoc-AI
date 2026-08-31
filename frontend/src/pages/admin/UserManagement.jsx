@@ -12,7 +12,8 @@ import {
   X,
   Lock,
   Mail,
-  Building
+  Building,
+  KeyRound
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 
@@ -21,6 +22,13 @@ export default function UserManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Password Reset Modal State
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [selectedUserForReset, setSelectedUserForReset] = useState(null);
+  const [newPasswordValue, setNewPasswordValue] = useState('');
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [resetSuccessMsg, setResetSuccessMsg] = useState('');
 
   // New user form state
   const [newUser, setNewUser] = useState({
@@ -78,6 +86,36 @@ export default function UserManagement() {
       } catch (err) {
         alert(err.response?.data?.detail || "Failed to delete user");
       }
+    }
+  };
+
+  const handleOpenResetModal = (user) => {
+    setSelectedUserForReset(user);
+    setNewPasswordValue('');
+    setResetSuccessMsg('');
+    setResetModalOpen(true);
+  };
+
+  const handleAdminResetPassword = async (e) => {
+    e.preventDefault();
+    if (!newPasswordValue || newPasswordValue.length < 6) {
+      alert("Password must be at least 6 characters in length");
+      return;
+    }
+    setResettingPassword(true);
+    try {
+      await adminService.resetUserPassword(selectedUserForReset.id, newPasswordValue);
+      setResetSuccessMsg(`Password for ${selectedUserForReset.email} successfully updated to: ${newPasswordValue}`);
+      setTimeout(() => {
+        setResetModalOpen(false);
+        setResetSuccessMsg('');
+        setNewPasswordValue('');
+        setSelectedUserForReset(null);
+      }, 2000);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Failed to reset password");
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -247,7 +285,16 @@ export default function UserManagement() {
                         }`}
                         title={u.role === 'admin' ? "Demote to Standard User" : "Grant Admin Access"}
                       >
-                        {u.role === 'admin' ? 'Demote to User' : 'Promote to Admin'}
+                        {u.role === 'admin' ? 'Demote' : 'Make Admin'}
+                      </button>
+
+                      <button
+                        onClick={() => handleOpenResetModal(u)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-1"
+                        title="Reset User Password"
+                      >
+                        <KeyRound className="w-3 h-3" />
+                        <span>Pass</span>
                       </button>
 
                       <button
@@ -438,6 +485,70 @@ export default function UserManagement() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Password Reset Modal */}
+      {resetModalOpen && selectedUserForReset && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="glass-panel rounded-3xl p-6 sm:p-8 border-slate-700 max-w-md w-full space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Reset User Password</h2>
+                  <p className="text-xs text-slate-400 font-mono">{selectedUserForReset.email}</p>
+                </div>
+              </div>
+              <button onClick={() => setResetModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {resetSuccessMsg && (
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span>{resetSuccessMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAdminResetPassword} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">New Password</label>
+                <input
+                  type="text"
+                  required
+                  minLength={6}
+                  value={newPasswordValue}
+                  onChange={(e) => setNewPasswordValue(e.target.value)}
+                  placeholder="Enter new 6+ char password"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
+                />
+                <p className="text-[11px] text-slate-400">
+                  Enter the password that the user will use to log in immediately.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setResetModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resettingPassword}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-lg shadow-indigo-600/30"
+                >
+                  {resettingPassword ? 'Updating...' : 'Set New Password'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
