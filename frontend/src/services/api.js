@@ -6,7 +6,12 @@ const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  return '/api';
+  // In development (localhost), Vite proxies '/api' to local backend
+  if (import.meta.env.DEV) {
+    return '/api';
+  }
+  // In production (Vercel), default directly to live Render backend
+  return 'https://cognitivedoc-ai.onrender.com/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
