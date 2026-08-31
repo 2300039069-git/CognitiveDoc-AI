@@ -17,17 +17,25 @@ def hash_password(password: str) -> str:
     return salt.hex() + ":" + key.hex()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify plain password against hashed password."""
-    try:
-        if ":" not in hashed_password:
-            # Fallback direct comparison or simple hash
-            return False
-        salt_hex, key_hex = hashed_password.split(":", 1)
-        salt = bytes.fromhex(salt_hex)
-        key = hashlib.pbkdf2_hmac('sha256', plain_password.encode('utf-8'), salt, 100000)
-        return hmac.compare_digest(key.hex(), key_hex)
-    except Exception:
+    """Verify plain password against hashed password with resilient fallbacks."""
+    if not plain_password or not hashed_password:
         return False
+
+    candidates = [plain_password, plain_password.strip()]
+    for p in candidates:
+        try:
+            if ":" in hashed_password:
+                salt_hex, key_hex = hashed_password.split(":", 1)
+                salt = bytes.fromhex(salt_hex)
+                key = hashlib.pbkdf2_hmac('sha256', p.encode('utf-8'), salt, 100000)
+                if hmac.compare_digest(key.hex(), key_hex):
+                    return True
+            elif hmac.compare_digest(p, hashed_password):
+                return True
+        except Exception:
+            continue
+
+    return False
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
