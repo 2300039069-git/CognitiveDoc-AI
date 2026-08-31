@@ -109,7 +109,13 @@ export default function RegisterPage() {
       setCanResend(false);
       setSuccessMsg(`A 6-digit verification code has been dispatched directly to ${email}. Please check your email inbox.`);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to send verification code. Please check your email.');
+      if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else if (err.code === 'ECONNABORTED' || !err.response) {
+        setError('Secure server is waking up. Please click Send Verification Code once more.');
+      } else {
+        setError('Failed to send verification code. Please check your email address.');
+      }
     } finally {
       setLoading(false);
     }

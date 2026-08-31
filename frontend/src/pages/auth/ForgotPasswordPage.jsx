@@ -51,7 +51,13 @@ export default function ForgotPasswordPage() {
       setSuccessMsg(`A 6-digit verification code has been dispatched directly to ${email.trim()}. Please check your email inbox.`);
       setStep('verify_and_reset');
     } catch (err) {
-      setError(err.response?.data?.detail || "No account found registered with this email address.");
+      if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else if (err.code === 'ECONNABORTED' || !err.response) {
+        setError("Secure server is waking up. Please click Send 6-Digit Code once more.");
+      } else {
+        setError("No account found registered with this email address.");
+      }
     } finally {
       setLoading(false);
     }
