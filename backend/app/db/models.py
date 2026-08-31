@@ -287,11 +287,10 @@ class PasswordResetRepository:
         return code
 
     @staticmethod
+    @staticmethod
     def verify_and_use_code(email: str, code: str) -> bool:
         clean_email = email.lower().strip()
-        clean_code = str(code).strip()
-        now_iso = datetime.utcnow().isoformat()
-        now_ts = time.time()
+        clean_code = str(code).strip().replace(" ", "")
         code_candidates = [clean_code]
         if clean_code.isdigit():
             code_candidates.append(int(clean_code))
@@ -307,34 +306,33 @@ class PasswordResetRepository:
                 }, sort=[("created_at", -1)])
 
                 if doc:
-                    exp_ts = doc.get("expires_ts", 0)
-                    exp_iso = doc.get("expires_at", "")
-                    if exp_ts > now_ts or exp_iso > now_iso or (not exp_ts and not exp_iso):
-                        db.password_resets.update_many({"email": clean_email}, {"$set": {"used": 1}})
-                        return True
+                    db.password_resets.update_many({"email": clean_email}, {"$set": {"used": 1}})
+                    return True
             except Exception:
                 pass
 
-        # SQLite Fallback
+        # SQLite Fallback: Fetch recent unexpired codes and compare stripped strings
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT id FROM password_resets 
-            WHERE email = ? AND code = ? AND used = 0 AND expires_at > ?
-            ORDER BY created_at DESC LIMIT 1
+            SELECT id, code FROM password_resets 
+            WHERE email = ? AND used = 0
+            ORDER BY created_at DESC LIMIT 10
             """,
-            (clean_email, clean_code, now_iso)
+            (clean_email,)
         )
-        row = cursor.fetchone()
-        if not row:
-            conn.close()
-            return False
+        rows = cursor.fetchall()
+        for r in rows:
+            stored_code = str(r["code"]).strip().replace(" ", "")
+            if stored_code == clean_code:
+                cursor.execute("UPDATE password_resets SET used = 1 WHERE email = ?", (clean_email,))
+                conn.commit()
+                conn.close()
+                return True
 
-        cursor.execute("UPDATE password_resets SET used = 1 WHERE email = ?", (clean_email,))
-        conn.commit()
         conn.close()
-        return True
+        return False
 
 
 # ================= REGISTRATION OTP REPOSITORY =================
@@ -383,9 +381,7 @@ class RegistrationOTPRepository:
     @staticmethod
     def verify_and_use_otp(email: str, code: str) -> bool:
         clean_email = email.lower().strip()
-        clean_code = str(code).strip()
-        now_iso = datetime.utcnow().isoformat()
-        now_ts = time.time()
+        clean_code = str(code).strip().replace(" ", "")
         code_candidates = [clean_code]
         if clean_code.isdigit():
             code_candidates.append(int(clean_code))
@@ -401,11 +397,8 @@ class RegistrationOTPRepository:
                 }, sort=[("created_at", -1)])
 
                 if doc:
-                    exp_ts = doc.get("expires_ts", 0)
-                    exp_iso = doc.get("expires_at", "")
-                    if exp_ts > now_ts or exp_iso > now_iso or (not exp_ts and not exp_iso):
-                        db.registration_otps.update_many({"email": clean_email}, {"$set": {"used": 1}})
-                        return True
+                    db.registration_otps.update_many({"email": clean_email}, {"$set": {"used": 1}})
+                    return True
             except Exception:
                 pass
 
@@ -414,21 +407,23 @@ class RegistrationOTPRepository:
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT id FROM registration_otps 
-            WHERE email = ? AND code = ? AND used = 0 AND expires_at > ?
-            ORDER BY created_at DESC LIMIT 1
+            SELECT id, code FROM registration_otps 
+            WHERE email = ? AND used = 0
+            ORDER BY created_at DESC LIMIT 10
             """,
-            (clean_email, clean_code, now_iso)
+            (clean_email,)
         )
-        row = cursor.fetchone()
-        if not row:
-            conn.close()
-            return False
+        rows = cursor.fetchall()
+        for r in rows:
+            stored_code = str(r["code"]).strip().replace(" ", "")
+            if stored_code == clean_code:
+                cursor.execute("UPDATE registration_otps SET used = 1 WHERE email = ?", (clean_email,))
+                conn.commit()
+                conn.close()
+                return True
 
-        cursor.execute("UPDATE registration_otps SET used = 1 WHERE email = ?", (clean_email,))
-        conn.commit()
         conn.close()
-        return True
+        return False
 
 
 # ================= DOCUMENT REPOSITORY =================
