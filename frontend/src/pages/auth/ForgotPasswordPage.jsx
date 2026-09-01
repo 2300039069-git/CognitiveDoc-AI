@@ -13,7 +13,9 @@ import {
   Zap,
   Sparkles,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Copy,
+  Check
 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import PublicNavbar from '../../components/layout/PublicNavbar';
@@ -27,6 +29,8 @@ export default function ForgotPasswordPage() {
   const [completed, setCompleted] = useState(false);
 
   const [email, setEmail] = useState('');
+  const [resetUrl, setResetUrl] = useState('');
+  const [copied, setCopied] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -58,7 +62,8 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      await authService.forgotPasswordLink(email.trim().toLowerCase());
+      const res = await authService.forgotPasswordLink(email.trim().toLowerCase());
+      setResetUrl(res.reset_url || '');
       setLinkSent(true);
       setResendTimer(30);
       setCanResend(false);
@@ -81,7 +86,8 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      await authService.forgotPasswordLink(email.trim().toLowerCase());
+      const res = await authService.forgotPasswordLink(email.trim().toLowerCase());
+      setResetUrl(res.reset_url || '');
       setResendTimer(30);
       setCanResend(false);
       setSuccessMsg(`A fresh password reset link has been sent to ${email.trim()}.`);
@@ -99,7 +105,7 @@ export default function ForgotPasswordPage() {
     setSuccessMsg('');
 
     if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters in length.');
+      setError('Password must be at length of least 6 characters.');
       return;
     }
 
@@ -145,7 +151,7 @@ export default function ForgotPasswordPage() {
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
               {linkSent
-                ? 'Check your email for the password reset link'
+                ? 'Check your email or click the instant reset button below'
                 : completed
                 ? 'Your password has been updated'
                 : 'Enter your email to receive a secure password reset link'}
@@ -252,19 +258,61 @@ export default function ForgotPasswordPage() {
                     Reset Link Dispatched! ✉️
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                    We dispatched a secure password reset link to <strong className="font-mono text-cyan-600 dark:text-cyan-400">{email}</strong>. Open the link to set your new password in the database.
+                    We dispatched a secure password reset link to <strong className="font-mono text-cyan-600 dark:text-cyan-400">{email}</strong>. Check your <span className="font-bold text-slate-800 dark:text-slate-200">Inbox or Spam</span> folder.
                   </p>
                 </div>
 
-                <div className="space-y-3 pt-2">
+                {/* Primary 1-Click Reset Action */}
+                <div className="p-4 rounded-2xl bg-cyan-500/[0.08] border border-cyan-500/30 space-y-3 text-left">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 font-mono">
+                      <Sparkles className="w-4 h-4 text-cyan-500" />
+                      <span>Password Reset Link Ready:</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = resetUrl || `${window.location.origin}/reset-password`;
+                        navigator.clipboard.writeText(url);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2500);
+                      }}
+                      className="text-[11px] font-mono font-bold text-cyan-600 dark:text-cyan-400 hover:underline flex items-center gap-1"
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          <span className="text-emerald-500">Link Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy Link</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <a
+                    href={resetUrl || `${window.location.origin}/reset-password`}
+                    className="btn-shimmer w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-xl shadow-brand-500/25 hover:scale-[1.02] active:scale-95 transition-all"
+                  >
+                    <span>Click to Set New Password (1-Click)</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </a>
+                </div>
+
+                {/* Quick Action Shortcuts */}
+                <div className="space-y-3 pt-1">
                   <a
                     href="https://mail.google.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-shimmer w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-xl shadow-brand-500/25 hover:scale-[1.02] active:scale-95 transition-all"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-2xl border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/[0.04] text-slate-700 dark:text-slate-300 font-bold text-xs transition-all shadow-sm"
                   >
-                    <span>Open Gmail Inbox</span>
-                    <ExternalLink className="w-4 h-4" />
+                    <Mail className="w-4 h-4 text-rose-500" />
+                    <span>Check Gmail Inbox / Spam</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                   </a>
 
                   <div className="flex items-center justify-between px-2 pt-1 text-xs">
@@ -285,6 +333,18 @@ export default function ForgotPasswordPage() {
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                       <span>{canResend ? 'Resend Email' : `Resend in ${resendTimer}s`}</span>
+                    </button>
+                  </div>
+
+                  {/* Direct Reset Tab Switcher fallback */}
+                  <div className="pt-2 border-t border-slate-200 dark:border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => { setLinkSent(false); setMode('direct'); }}
+                      className="w-full py-2.5 px-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold text-brand-600 dark:text-cyan-400 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>Use Instant On-Screen Reset Instead ⚡</span>
                     </button>
                   </div>
                 </div>
