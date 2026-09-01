@@ -20,14 +20,12 @@ def seed_database():
     if not master_admin:
         master_admin = UserRepository.create_user(
             email="kancharladhanush2003@gmail.com",
-            password_hash=hash_password("password123"),
+            password_hash=hash_password("Kdk2003"),
             full_name="Master Administrator (Dhanush)",
             role="admin",
             organization="Cognitive Enterprise Headquarters"
         )
-        print("Created master admin user: kancharladhanush2003@gmail.com / password123")
-    else:
-        UserRepository.update_password("kancharladhanush2003@gmail.com", hash_password("password123"))
+        print("Created master admin user: kancharladhanush2003@gmail.com / Kdk2003")
 
     # Seed demo admin
     admin_user = UserRepository.get_by_email("admin@example.com")

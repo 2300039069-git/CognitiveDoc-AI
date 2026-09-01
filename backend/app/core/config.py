@@ -53,5 +53,5 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:1.5b")
 
 # MongoDB Atlas / NoSQL Database Settings
-MONGODB_URI = os.getenv("MONGODB_URI", "")
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb+srv://kancharladhanush2003_db_user:Kdk2003@cluster0.wjv5pie.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "cognitivedoc_ai")
