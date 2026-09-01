@@ -255,6 +255,48 @@ class UserRepository:
 # ================= PASSWORD RESET REPOSITORY =================
 class PasswordResetRepository:
     @staticmethod
+    def create_reset_token(email: str) -> str:
+        import secrets
+        clean_email = email.lower().strip()
+        token = secrets.token_urlsafe(32)
+        reset_id = str(uuid.uuid4())
+        created_at = datetime.utcnow().isoformat()
+        expires_at = (datetime.utcnow() + timedelta(hours=2)).isoformat()
+        expires_ts = time.time() + 7200
+
+        # Try MongoDB Atlas
+        db = get_mongo_db()
+        if db is not None:
+            try:
+                db.password_resets.insert_one({
+                    "_id": reset_id,
+                    "email": clean_email,
+                    "token": token,
+                    "code": token,
+                    "expires_at": expires_at,
+                    "expires_ts": expires_ts,
+                    "used": 0,
+                    "created_at": created_at
+                })
+                return token
+            except Exception:
+                pass
+
+        # SQLite Fallback
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO password_resets (id, email, code, expires_at, used, created_at)
+            VALUES (?, ?, ?, ?, 0, ?)
+            """,
+            (reset_id, clean_email, token, expires_at, created_at)
+        )
+        conn.commit()
+        conn.close()
+        return token
+
+    @staticmethod
     def create_reset_code(email: str) -> str:
         import random
         clean_email = email.lower().strip()
@@ -262,7 +304,7 @@ class PasswordResetRepository:
         reset_id = str(uuid.uuid4())
         created_at = datetime.utcnow().isoformat()
         expires_at = (datetime.utcnow() + timedelta(minutes=30)).isoformat()
-        expires_ts = time.time() + 1800  # 30-minute generous window
+        expires_ts = time.time() + 1800
 
         # Try MongoDB Atlas
         db = get_mongo_db()
@@ -296,6 +338,51 @@ class PasswordResetRepository:
         return code
 
     @staticmethod
+    def verify_reset_token(token: str) -> Optional[str]:
+        clean_token = token.strip()
+        # MongoDB Atlas
+        db = get_mongo_db()
+        if db is not None:
+            try:
+                doc = db.password_resets.find_one({
+                    "$or": [{"token": clean_token}, {"code": clean_token}],
+                    "used": 0
+                }, sort=[("created_at", -1)])
+                if doc:
+                    return doc.get("email")
+            except Exception:
+                pass
+
+        # SQLite Fallback
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT email FROM password_resets WHERE code = ? AND used = 0 ORDER BY created_at DESC LIMIT 1", (clean_token,))
+        row = cursor.fetchone()
+        conn.close()
+        return row["email"] if row else None
+
+    @staticmethod
+    def consume_reset_token(token: str) -> bool:
+        clean_token = token.strip()
+        # MongoDB Atlas
+        db = get_mongo_db()
+        if db is not None:
+            try:
+                db.password_resets.update_many(
+                    {"$or": [{"token": clean_token}, {"code": clean_token}]},
+                    {"$set": {"used": 1}}
+                )
+            except Exception:
+                pass
+
+        # SQLite Fallback
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE password_resets SET used = 1 WHERE code = ?", (clean_token,))
+        conn.commit()
+        conn.close()
+        return True
+
     @staticmethod
     def verify_and_use_code(email: str, code: str) -> bool:
         clean_email = email.lower().strip()
@@ -342,6 +429,117 @@ class PasswordResetRepository:
 
         conn.close()
         return False
+
+
+# ================= EMAIL VERIFICATION REPOSITORY =================
+class EmailVerificationRepository:
+    @staticmethod
+    def create_verification_token(email: str, full_name: str, password_hash: str, organization: str = "General") -> str:
+        import secrets
+        clean_email = email.lower().strip()
+        token = secrets.token_urlsafe(32)
+        record_id = str(uuid.uuid4())
+        created_at = datetime.utcnow().isoformat()
+        expires_at = (datetime.utcnow() + timedelta(hours=24)).isoformat()
+        expires_ts = time.time() + 86400
+
+        # Try MongoDB Atlas
+        db = get_mongo_db()
+        if db is not None:
+            try:
+                db.email_verifications.insert_one({
+                    "_id": record_id,
+                    "token": token,
+                    "email": clean_email,
+                    "full_name": full_name,
+                    "password_hash": password_hash,
+                    "organization": organization,
+                    "expires_at": expires_at,
+                    "expires_ts": expires_ts,
+                    "used": 0,
+                    "created_at": created_at
+                })
+                return token
+            except Exception:
+                pass
+
+        # SQLite Fallback
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO email_verifications (id, token, email, full_name, password_hash, organization, expires_at, used, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
+            """,
+            (record_id, token, clean_email, full_name, password_hash, organization, expires_at, created_at)
+        )
+        conn.commit()
+        conn.close()
+        return token
+
+    @staticmethod
+    def get_by_token(token: str) -> Optional[Dict[str, Any]]:
+        clean_token = token.strip()
+        # MongoDB Atlas
+        db = get_mongo_db()
+        if db is not None:
+            try:
+                doc = db.email_verifications.find_one({"token": clean_token, "used": 0})
+                if doc:
+                    return mongo_doc_to_dict(doc)
+            except Exception:
+                pass
+
+        # SQLite Fallback
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM email_verifications WHERE token = ? AND used = 0", (clean_token,))
+        row = cursor.fetchone()
+        conn.close()
+        return dict_from_row(row)
+
+    @staticmethod
+    def verify_and_activate(token: str) -> Optional[Dict[str, Any]]:
+        clean_token = token.strip()
+        record = EmailVerificationRepository.get_by_token(clean_token)
+        if not record:
+            return None
+
+        clean_email = record["email"].lower().strip()
+        full_name = record.get("full_name", "CognitiveDoc User")
+        password_hash = record.get("password_hash", "")
+        organization = record.get("organization", "General")
+
+        # 1. Mark token as used
+        db = get_mongo_db()
+        if db is not None:
+            try:
+                db.email_verifications.update_one({"token": clean_token}, {"$set": {"used": 1}})
+            except Exception:
+                pass
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE email_verifications SET used = 1 WHERE token = ?", (clean_token,))
+        conn.commit()
+        conn.close()
+
+        # 2. Check if user exists or create new user in MongoDB Atlas
+        existing_user = UserRepository.get_by_email(clean_email)
+        if existing_user:
+            UserRepository.update_user_status(existing_user["id"], True)
+            if password_hash:
+                UserRepository.update_password(clean_email, password_hash)
+            return UserRepository.get_by_email(clean_email)
+        else:
+            user = UserRepository.create_user(
+                email=clean_email,
+                password_hash=password_hash,
+                full_name=full_name,
+                role="user",
+                organization=organization
+            )
+            return user
 
 
 # ================= REGISTRATION OTP REPOSITORY =================

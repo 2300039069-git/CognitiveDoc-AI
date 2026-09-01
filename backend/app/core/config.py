@@ -22,6 +22,9 @@ DEFAULT_CHUNK_SIZE = 500  # characters
 DEFAULT_CHUNK_OVERLAP = 100
 DEFAULT_SUMMARY_RATIO = 0.25
 
+# Frontend Base URL for Email Links
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://cognitive-doc-ai.vercel.app")
+
 # Email & Transactional API Settings (Port 443 HTTPS & SMTP)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "CognitiveDoc AI <onboarding@resend.dev>")

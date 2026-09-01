@@ -60,6 +60,47 @@ export const authService = {
     return response.data;
   },
 
+  // Link-Based Verification & Password Reset
+  registerSendLink: async (userData) => {
+    const frontendUrl = window.location.origin;
+    const response = await api.post('/auth/register-send-link', {
+      ...userData,
+      frontend_url: frontendUrl
+    });
+    return response.data;
+  },
+
+  verifyEmailToken: async (token) => {
+    const response = await api.post('/auth/verify-email-token', { token });
+    if (response.data.access_token) {
+      localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  },
+
+  forgotPasswordLink: async (email) => {
+    const frontendUrl = window.location.origin;
+    const response = await api.post('/auth/forgot-password-link', {
+      email,
+      frontend_url: frontendUrl
+    });
+    return response.data;
+  },
+
+  verifyResetToken: async (token) => {
+    const response = await api.post('/auth/verify-reset-token', { token });
+    return response.data;
+  },
+
+  confirmResetPassword: async (token, newPassword) => {
+    const response = await api.post('/auth/confirm-reset-password', {
+      token,
+      new_password: newPassword
+    });
+    return response.data;
+  },
+
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');

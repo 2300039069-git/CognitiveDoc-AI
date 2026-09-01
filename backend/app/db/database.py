@@ -143,6 +143,21 @@ def init_db():
     )
     """)
 
+    # Email Verifications (Registration Verification Links)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS email_verifications (
+        id TEXT PRIMARY KEY,
+        token TEXT UNIQUE NOT NULL,
+        email TEXT NOT NULL,
+        full_name TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        organization TEXT DEFAULT 'General',
+        expires_at TEXT NOT NULL,
+        used INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL
+    )
+    """)
+
     conn.commit()
     conn.close()
     logger.info("Database initialized successfully.")

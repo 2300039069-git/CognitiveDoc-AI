@@ -470,3 +470,159 @@ def reset_password(req: ResetPasswordRequest):
         "success": True,
         "message": "Password updated successfully. You can now log in with your new credentials."
     }
+
+
+# ================= LINK-BASED EMAIL VERIFICATION & PASSWORD RESET =================
+
+class RegisterSendLinkRequest(BaseModel):
+    email: EmailStr
+    password: str
+    full_name: str
+    organization: Optional[str] = "General"
+    frontend_url: Optional[str] = None
+
+class VerifyEmailTokenRequest(BaseModel):
+    token: str
+
+class ForgotPasswordLinkRequest(BaseModel):
+    email: EmailStr
+    frontend_url: Optional[str] = None
+
+class VerifyResetTokenRequest(BaseModel):
+    token: str
+
+class ConfirmResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+@router.post("/register-send-link")
+def register_send_link(req: RegisterSendLinkRequest, background_tasks: BackgroundTasks):
+    clean_email = req.email.lower().strip()
+    
+    if len(req.password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 6 characters in length"
+        )
+    
+    existing = UserRepository.get_by_email(clean_email)
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An account with this email address already exists. Please sign in."
+        )
+    
+    from app.db.models import EmailVerificationRepository
+    from app.services.email_service import send_verification_link_email
+    from app.core.config import FRONTEND_URL
+    
+    pwd_hash = hash_password(req.password)
+    token = EmailVerificationRepository.create_verification_token(
+        email=clean_email,
+        full_name=req.full_name.strip(),
+        password_hash=pwd_hash,
+        organization=req.organization.strip() if req.organization else "General"
+    )
+    
+    base_url = (req.frontend_url or FRONTEND_URL).rstrip("/")
+    verification_url = f"{base_url}/verify-email?token={token}"
+    
+    background_tasks.add_task(send_verification_link_email, clean_email, req.full_name.strip(), verification_url)
+    print(f"\n[EMAIL VERIFICATION LINK] Generated for {clean_email} -> {verification_url}\n")
+    
+    return {
+        "success": True,
+        "message": f"A verification link has been dispatched to {clean_email}. Click the link to activate your account.",
+        "verification_url": verification_url
+    }
+
+@router.post("/verify-email-token", response_model=TokenResponse)
+def verify_email_token(req: VerifyEmailTokenRequest):
+    from app.db.models import EmailVerificationRepository
+    user = EmailVerificationRepository.verify_and_activate(req.token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired email verification link. Please register again."
+        )
+    
+    token = create_access_token({"sub": user["id"], "email": user["email"], "role": user["role"]})
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "full_name": user["full_name"],
+            "role": user["role"],
+            "organization": user.get("organization", "General"),
+            "tier": user.get("tier", "Enterprise Pro")
+        }
+    }
+
+@router.post("/forgot-password-link")
+def forgot_password_link(req: ForgotPasswordLinkRequest, background_tasks: BackgroundTasks):
+    clean_email = req.email.lower().strip()
+    user = UserRepository.get_by_email(clean_email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No account found registered with this email address."
+        )
+    
+    from app.db.models import PasswordResetRepository
+    from app.services.email_service import send_password_reset_link_email
+    from app.core.config import FRONTEND_URL
+    
+    token = PasswordResetRepository.create_reset_token(clean_email)
+    base_url = (req.frontend_url or FRONTEND_URL).rstrip("/")
+    reset_url = f"{base_url}/reset-password?token={token}"
+    
+    background_tasks.add_task(send_password_reset_link_email, clean_email, reset_url)
+    print(f"\n[PASSWORD RESET LINK] Generated for {clean_email} -> {reset_url}\n")
+    
+    return {
+        "success": True,
+        "message": f"Password reset link has been dispatched to {clean_email}. Please check your inbox.",
+        "reset_url": reset_url
+    }
+
+@router.post("/verify-reset-token")
+def verify_reset_token(req: VerifyResetTokenRequest):
+    from app.db.models import PasswordResetRepository
+    email = PasswordResetRepository.verify_reset_token(req.token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired password reset link. Please request a new link."
+        )
+    return {
+        "valid": True,
+        "email": email,
+        "message": "Password reset token is valid."
+    }
+
+@router.post("/confirm-reset-password")
+def confirm_reset_password(req: ConfirmResetPasswordRequest):
+    if len(req.new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 6 characters in length"
+        )
+    
+    from app.db.models import PasswordResetRepository
+    email = PasswordResetRepository.verify_reset_token(req.token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired password reset link. Please request a new link."
+        )
+    
+    new_hash = hash_password(req.new_password)
+    UserRepository.update_password(email, new_hash)
+    PasswordResetRepository.consume_reset_token(req.token)
+    
+    return {
+        "success": True,
+        "message": "Password updated successfully in database. You can now log in with your new credentials."
+    }

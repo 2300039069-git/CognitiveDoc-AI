@@ -9,7 +9,6 @@ import {
   ArrowRight,
   AlertCircle,
   CheckCircle2,
-  KeyRound,
   RefreshCw,
   ArrowLeft,
   ShieldCheck,
@@ -17,7 +16,8 @@ import {
   Zap,
   Cpu,
   Database,
-  Shield
+  Shield,
+  ExternalLink
 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -26,15 +26,15 @@ import { auth, googleProvider, signInWithPopup } from '../../services/firebase';
 import { authService } from '../../services/authService';
 
 export default function RegisterPage() {
-  const [step, setStep] = useState(1); // 1: Input details, 2: Enter 6-digit email OTP
+  // Step 1: Input details | Step 2: Verification Email Dispatched
+  const [step, setStep] = useState(1);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [organization, setOrganization] = useState('');
 
-  // OTP Verification States
-  const [otpCode, setOtpCode] = useState('');
+  const [verificationUrl, setVerificationUrl] = useState('');
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
 
@@ -85,9 +85,9 @@ export default function RegisterPage() {
     }
   };
 
-  // Instant Direct Registration (Primary Path - No OTP blocking)
-  const handleDirectRegister = async (e) => {
-    if (e) e.preventDefault();
+  // Step 1: Send Verification Link to User's Email
+  const handleRegisterAndSendLink = async (e) => {
+    e.preventDefault();
     setError('');
     setSuccessMsg('');
 
@@ -101,6 +101,59 @@ export default function RegisterPage() {
       return;
     }
 
+    setLoading(true);
+    try {
+      const res = await authService.registerSendLink({
+        email: email.trim().toLowerCase(),
+        password: password,
+        full_name: fullName.trim() || 'CognitiveDoc User',
+        organization: organization.trim() || 'Enterprise Team'
+      });
+
+      setVerificationUrl(res.verification_url || '');
+      setStep(2);
+      setResendTimer(30);
+      setCanResend(false);
+      setSuccessMsg(`A verification link has been dispatched to ${email.trim()}.`);
+    } catch (err) {
+      if (err.response?.data?.detail) {
+        setError(err.response.data.detail);
+      } else {
+        setError('Failed to send verification link. Please verify your email or use Instant Activate.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Resend Verification Email
+  const handleResendLink = async () => {
+    if (!canResend || loading) return;
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await authService.registerSendLink({
+        email: email.trim().toLowerCase(),
+        password: password,
+        full_name: fullName.trim() || 'CognitiveDoc User',
+        organization: organization.trim() || 'Enterprise Team'
+      });
+
+      setVerificationUrl(res.verification_url || '');
+      setResendTimer(30);
+      setCanResend(false);
+      setSuccessMsg(`A fresh verification link has been dispatched to ${email.trim()}.`);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to resend verification link.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Instant Fallback (if user wants to skip email wait)
+  const handleDirectActivate = async () => {
+    setError('');
     setLoading(true);
     try {
       const data = await authService.register({
@@ -117,105 +170,7 @@ export default function RegisterPage() {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to create account. Please check your details.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Step 1: Send 6-Digit OTP to user email (Optional Path)
-  const handleSendOTP = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccessMsg('');
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters in length.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match. Please re-enter.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await api.post('/auth/send-registration-otp', {
-        email: email.trim().toLowerCase(),
-        full_name: fullName.trim()
-      });
-
-      setStep(2);
-      setOtpCode('');
-      setResendTimer(30);
-      setCanResend(false);
-      setSuccessMsg(`A 6-digit verification code has been dispatched directly to ${email}. Please check your email inbox.`);
-    } catch (err) {
-      if (err.response?.data?.detail) {
-        setError(err.response.data.detail);
-      } else {
-        // If OTP sending encounters any network/smtp issue, seamlessly fallback to direct registration
-        handleDirectRegister();
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Step 2: Confirm 6-Digit OTP and Activate Account
-  const handleVerifyAndRegister = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccessMsg('');
-
-    if (!otpCode || otpCode.trim().length !== 6) {
-      setError('Please enter the complete 6-digit verification code sent to your email, or click Instant Activate.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await api.post('/auth/verify-registration-otp', {
-        email: email.trim().toLowerCase(),
-        code: otpCode.trim(),
-        password: password,
-        full_name: fullName.trim(),
-        organization: organization.trim() || 'Enterprise Team'
-      });
-
-      const { access_token, user } = res.data;
-      loginWithToken(access_token, user);
-
-      if (user.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Invalid or expired verification code. You can click Instant Activate below to proceed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Resend OTP
-  const handleResendOTP = async () => {
-    if (!canResend || loading) return;
-    setError('');
-    setLoading(true);
-
-    try {
-      await api.post('/auth/send-registration-otp', {
-        email: email.trim().toLowerCase(),
-        full_name: fullName.trim()
-      });
-
-      setResendTimer(30);
-      setCanResend(false);
-      setSuccessMsg(`A new 6-digit verification code has been sent directly to ${email}. Please check your inbox.`);
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to resend code. Use Instant Activate below.');
+      setError(err.response?.data?.detail || 'Failed to activate account.');
     } finally {
       setLoading(false);
     }
@@ -239,14 +194,14 @@ export default function RegisterPage() {
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-700 dark:text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Instant Enterprise Onboarding</span>
+                <span>Link-Verified Security</span>
               </div>
 
               <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-snug">
                 Join the <span className="text-gradient-cyan">CognitiveDoc AI</span> Ecosystem
               </h2>
 
-              <p className="text-sm text-slate-600 dark:text-400 leading-relaxed">
+              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 Empower your workflow with private, high-speed document synthesis and RAG vector intelligence.
               </p>
 
@@ -267,7 +222,7 @@ export default function RegisterPage() {
                   <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                     <Shield className="w-4 h-4" />
                   </div>
-                  <span>Zero-Wait Instant Workspace Provisioning</span>
+                  <span>1-Click Email Verification Activation</span>
                 </div>
               </div>
             </div>
@@ -278,23 +233,21 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Right Column: Registration Form Panel */}
-          <div className="lg:col-span-7 w-full max-w-lg mx-auto space-y-6">
-            
-            {/* Header */}
+          {/* Right Column: Registration Form / Verification Status */}
+          <div className="lg:col-span-7 space-y-6">
             <div className="text-center space-y-2 lg:text-left">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 via-brand-500 to-indigo-600 p-0.5 shadow-xl shadow-cyan-500/20 flex items-center justify-center lg:mx-0 mx-auto">
                 <div className="w-full h-full bg-white dark:bg-slate-950 rounded-[14px] flex items-center justify-center">
-                  {step === 1 ? <Bot className="w-6 h-6 text-brand-600 dark:text-cyan-400" /> : <KeyRound className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />}
+                  {step === 1 ? <Bot className="w-6 h-6 text-brand-600 dark:text-cyan-400" /> : <Mail className="w-6 h-6 text-cyan-600 dark:text-cyan-400 animate-pulse" />}
                 </div>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
-                {step === 1 ? 'Create Your Account' : 'Verify Email Address'}
+                {step === 1 ? 'Create Your Account' : 'Check Your Email'}
               </h1>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                 {step === 1
-                  ? 'Sign up directly to launch your CognitiveDoc AI workspace instantly'
-                  : `Enter the 6-digit code dispatched to ${email} or click Instant Activate`}
+                  ? 'Sign up to receive your secure account activation link'
+                  : `We sent an activation link to ${email}`}
               </p>
             </div>
 
@@ -302,7 +255,6 @@ export default function RegisterPage() {
               
               {step === 1 && (
                 <>
-                  {/* Google 1-Tap Fast Sign In */}
                   <button
                     type="button"
                     onClick={handleGoogleSignIn}
@@ -324,7 +276,7 @@ export default function RegisterPage() {
                     </div>
                     <div className="relative flex justify-center text-[10px] uppercase font-mono font-bold tracking-wider">
                       <span className="bg-white dark:bg-slate-900 px-3 text-slate-400 dark:text-slate-500">
-                        Or create direct account
+                        Or register with email verification link
                       </span>
                     </div>
                   </div>
@@ -345,8 +297,9 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {step === 1 ? (
-                <form onSubmit={handleDirectRegister} className="space-y-3.5">
+              {/* Step 1: Registration Form */}
+              {step === 1 && (
+                <form onSubmit={handleRegisterAndSendLink} className="space-y-3.5">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider">
                       Full Name
@@ -433,7 +386,7 @@ export default function RegisterPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2 pt-1">
+                  <div className="pt-2">
                     <button
                       type="submit"
                       disabled={loading}
@@ -442,100 +395,85 @@ export default function RegisterPage() {
                       {loading ? (
                         <span className="flex items-center gap-2">
                           <Zap className="w-4 h-4 animate-spin" />
-                          <span>Creating Account & Provisioning...</span>
+                          <span>Sending Verification Link...</span>
                         </span>
                       ) : (
                         <>
-                          <span>Create Account Instantly</span>
+                          <span>Create Account & Send Verification Link</span>
                           <ArrowRight className="w-4 h-4" />
                         </>
                       )}
                     </button>
-
-                    <button
-                      type="button"
-                      onClick={handleSendOTP}
-                      disabled={loading}
-                      className="w-full py-2 text-center text-xs text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-cyan-400 font-mono transition-colors"
-                    >
-                      Or register with 6-digit email OTP ✉️
-                    </button>
                   </div>
                 </form>
-              ) : (
-                <form onSubmit={handleVerifyAndRegister} className="space-y-5">
-                  <div>
-                    <label className="block text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wider">
-                      Enter 6-Digit Email Verification Code
-                    </label>
-                    <div className="relative">
-                      <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                      <input
-                        type="text"
-                        maxLength={6}
-                        required
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
-                        placeholder="123456"
-                        className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white dark:bg-slate-950 border border-emerald-500/40 focus:border-emerald-500 text-slate-900 dark:text-white text-center text-xl tracking-[10px] font-mono outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner font-bold"
-                      />
+              )}
+
+              {/* Step 2: Verification Email Dispatched View */}
+              {step === 2 && (
+                <div className="space-y-5 text-center py-2">
+                  <div className="relative w-20 h-20 mx-auto">
+                    <div className="absolute inset-0 rounded-3xl bg-cyan-500/20 blur-xl animate-pulse" />
+                    <div className="w-full h-full rounded-3xl bg-cyan-500/10 border-2 border-cyan-500/40 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shadow-2xl shadow-cyan-500/20">
+                      <Mail className="w-10 h-10 animate-bounce" />
                     </div>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-2 text-center">
-                      Code dispatched to <strong className="text-slate-900 dark:text-slate-200">{email}</strong>. Check inbox or spam.
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                      Verification Link Dispatched! ✉️
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+                      We sent a secure activation link to <strong className="font-mono text-cyan-600 dark:text-cyan-400">{email}</strong>. Open your email and click the button to activate your account.
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setStep(1)}
-                      className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors font-medium"
+                  {/* Quick Action Buttons */}
+                  <div className="space-y-3 pt-2">
+                    <a
+                      href="https://mail.google.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-shimmer w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-xl shadow-brand-500/25 hover:scale-[1.02] active:scale-95 transition-all"
                     >
-                      <ArrowLeft className="w-3.5 h-3.5" />
-                      <span>Edit Details</span>
-                    </button>
+                      <span>Open Gmail Inbox</span>
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
 
-                    <button
-                      type="button"
-                      onClick={handleResendOTP}
-                      disabled={!canResend || loading}
-                      className="flex items-center gap-1.5 text-xs text-brand-600 dark:text-cyan-400 hover:text-brand-500 dark:hover:text-cyan-300 disabled:text-slate-400 dark:disabled:text-slate-600 transition-colors font-semibold"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                      <span>{canResend ? 'Resend Code' : `Resend in ${resendTimer}s`}</span>
-                    </button>
+                    <div className="flex items-center justify-between px-2 pt-1 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setStep(1)}
+                        className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Edit Details</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleResendLink}
+                        disabled={!canResend || loading}
+                        className="flex items-center gap-1.5 text-brand-600 dark:text-cyan-400 hover:underline disabled:text-slate-400 font-semibold transition-colors"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                        <span>{canResend ? 'Resend Email' : `Resend in ${resendTimer}s`}</span>
+                      </button>
+                    </div>
+
+                    {/* Direct Activate fallback */}
+                    <div className="pt-2 border-t border-slate-200 dark:border-white/10">
+                      <button
+                        type="button"
+                        onClick={handleDirectActivate}
+                        disabled={loading}
+                        className="w-full py-2.5 px-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold text-brand-600 dark:text-cyan-400 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>Instant Activate (Skip email check) ⚡</span>
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="flex flex-col gap-2.5">
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="btn-shimmer w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-500/25 transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-95"
-                    >
-                      {loading ? (
-                        <span className="flex items-center gap-2">
-                          <Zap className="w-4 h-4 animate-spin" />
-                          <span>Verifying & Activating Account...</span>
-                        </span>
-                      ) : (
-                        <>
-                          <span>Verify Code & Launch Workspace</span>
-                          <ShieldCheck className="w-4 h-4" />
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleDirectRegister}
-                      disabled={loading}
-                      className="w-full py-2.5 px-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold text-brand-600 dark:text-cyan-400 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-all flex items-center justify-center gap-1.5"
-                    >
-                      <Zap className="w-3.5 h-3.5" />
-                      <span>Instant Activate (Skip OTP wait)</span>
-                    </button>
-                  </div>
-                </form>
+                </div>
               )}
 
               <div className="pt-3 text-center text-xs text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-white/10">
