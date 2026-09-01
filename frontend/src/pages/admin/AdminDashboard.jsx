@@ -13,7 +13,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   Server,
-  Zap
+  Zap,
+  Database,
+  Radio
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 
@@ -38,8 +40,8 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="min-h-[400px] flex flex-col items-center justify-center text-slate-400 gap-3">
-        <Zap className="w-8 h-8 text-amber-500 animate-spin" />
-        <p className="text-sm font-medium">Aggregating platform administrative telemetry...</p>
+        <Zap className="w-8 h-8 text-amber-400 animate-spin" />
+        <p className="text-xs font-mono">Aggregating platform administrative telemetry...</p>
       </div>
     );
   }
@@ -47,27 +49,30 @@ export default function AdminDashboard() {
   const kpis = [
     {
       label: "Registered Users",
-      value: stats?.total_users || 4,
-      sub: `${stats?.active_users || 4} Active Sessions`,
+      value: stats?.total_users || 12,
+      sub: `${stats?.active_users || 12} Active Sessions`,
       icon: Users,
-      color: "text-brand-400",
-      bg: "bg-brand-500/10"
+      color: "text-amber-400",
+      border: "border-amber-500/30",
+      bg: "bg-amber-500/10"
     },
     {
       label: "Global Documents",
       value: stats?.total_documents || 6,
       sub: `${stats?.total_storage_mb || 1.8} MB Local Storage`,
       icon: Files,
-      color: "text-amber-400",
-      bg: "bg-amber-500/10"
+      color: "text-orange-400",
+      border: "border-orange-500/30",
+      bg: "bg-orange-500/10"
     },
     {
       label: "Summaries Generated",
       value: stats?.total_summaries || 6,
       sub: "100% On-Premise NLP",
       icon: Cpu,
-      color: "text-purple-400",
-      bg: "bg-purple-500/10"
+      color: "text-cyan-400",
+      border: "border-cyan-500/30",
+      bg: "bg-cyan-500/10"
     },
     {
       label: "Avg Model Latency",
@@ -75,6 +80,7 @@ export default function AdminDashboard() {
       sub: "CPU native inference",
       icon: Clock,
       color: "text-emerald-400",
+      border: "border-emerald-500/30",
       bg: "bg-emerald-500/10"
     }
   ];
@@ -82,28 +88,34 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8 pb-12">
       {/* Header Banner */}
-      <div className="glass-panel rounded-3xl p-6 sm:p-8 border-amber-500/20 bg-gradient-to-r from-amber-950/30 via-slate-900 to-orange-950/30 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+      <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-amber-500/30 bg-gradient-to-r from-amber-950/40 via-slate-900 to-orange-950/30 flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative overflow-hidden shadow-2xl">
+        
+        {/* Glow halo */}
+        <div className="absolute right-0 top-0 w-80 h-80 bg-amber-500/10 blur-[90px] pointer-events-none -z-10" />
+
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold font-mono">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Root Superuser Console • Node: Localhost</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-semibold">
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+            <span>Root Superuser Console • Node: MongoDB Atlas Cloud</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">System Administration Overview</h1>
-          <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
-            Monitor platform health, active users, global document repository, and local Hugging Face model telemetry.
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            System Administration <span className="text-gradient-gold">Mission Control</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
+            Monitor infrastructure health, manage registered users, oversee document access, and track local Hugging Face transformer performance in real-time.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <Link
             to="/admin/users"
-            className="px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-all font-mono"
+            className="btn-shimmer px-5 py-2.5 rounded-2xl text-xs font-bold bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black shadow-lg shadow-amber-500/20 hover:scale-105 transition-all font-mono"
           >
             Manage Users
           </Link>
           <Link
             to="/admin/ai-monitoring"
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-200 hover:bg-slate-700 transition-all"
+            className="px-4 py-2.5 rounded-2xl text-xs font-semibold bg-white/[0.04] border border-white/10 text-slate-200 hover:bg-white/[0.08] transition-all font-mono"
           >
             AI Telemetry
           </Link>
@@ -115,15 +127,15 @@ export default function AdminDashboard() {
         {kpis.map((kpi, idx) => {
           const Icon = kpi.icon;
           return (
-            <div key={idx} className="glass-panel rounded-2xl p-5 border-slate-800/80 space-y-3">
+            <div key={idx} className="glass-card-interactive p-5 space-y-3 group">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{kpi.label}</span>
-                <div className={`w-9 h-9 rounded-xl ${kpi.bg} flex items-center justify-center ${kpi.color}`}>
+                <div className={`w-9 h-9 rounded-xl ${kpi.bg} border ${kpi.border} flex items-center justify-center ${kpi.color} group-hover:scale-110 transition-transform`}>
                   <Icon className="w-4 h-4" />
                 </div>
               </div>
               <div className="space-y-1">
-                <p className="text-3xl font-extrabold text-white">{kpi.value}</p>
+                <p className="text-3xl font-extrabold text-white font-mono tracking-tight">{kpi.value}</p>
                 <p className="text-[11px] text-slate-400 font-mono">{kpi.sub}</p>
               </div>
             </div>
@@ -133,80 +145,80 @@ export default function AdminDashboard() {
 
       {/* Server Health & Resources */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 glass-panel rounded-3xl p-6 border-slate-800 space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="lg:col-span-2 glass-panel rounded-3xl p-6 border border-white/10 space-y-5 shadow-2xl">
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
             <div className="flex items-center gap-2">
               <Server className="w-4 h-4 text-emerald-400" />
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider">Host Node Health & Load</h2>
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Host Node Health & Hardware Allocation</h2>
             </div>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
               Optimal Condition
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-white/10 space-y-2">
               <div className="flex justify-between text-xs text-slate-300">
-                <span>CPU Host Utilization</span>
-                <span className="font-mono text-emerald-400">{stats?.server_health?.cpu_usage_percent || 14}%</span>
+                <span>CPU Core Load</span>
+                <span className="font-mono text-emerald-400 font-bold">{stats?.server_health?.cpu_usage_percent || 14}%</span>
               </div>
-              <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-white/5">
                 <div
-                  className="bg-emerald-500 h-full rounded-full"
+                  className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full"
                   style={{ width: `${stats?.server_health?.cpu_usage_percent || 14}%` }}
                 ></div>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-white/10 space-y-2">
               <div className="flex justify-between text-xs text-slate-300">
                 <span>Memory Allocation (RAM)</span>
-                <span className="font-mono text-brand-400">{stats?.server_health?.memory_usage_percent || 38}%</span>
+                <span className="font-mono text-cyan-400 font-bold">{stats?.server_health?.memory_usage_percent || 38}%</span>
               </div>
-              <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-white/5">
                 <div
-                  className="bg-brand-500 h-full rounded-full"
+                  className="bg-gradient-to-r from-cyan-500 to-brand-500 h-full rounded-full"
                   style={{ width: `${stats?.server_health?.memory_usage_percent || 38}%` }}
                 ></div>
               </div>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2 text-xs">
+          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-2 text-xs font-mono">
             <div className="flex items-center justify-between">
               <span className="text-slate-400">In-Memory FAISS Vector Indices:</span>
-              <span className="font-mono text-white font-bold">{stats?.total_documents || 3} Active Indices</span>
+              <span className="text-white font-bold">{stats?.total_documents || 6} Active Indices</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-400">Total System Queries Processed:</span>
-              <span className="font-mono text-white font-bold">{stats?.total_queries || 14} Queries</span>
+              <span className="text-white font-bold">{stats?.total_queries || 14} Queries</span>
             </div>
           </div>
         </div>
 
         {/* Quick Admin Navigation */}
-        <div className="glass-panel rounded-3xl p-6 border-slate-800 space-y-4">
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider pb-3 border-b border-slate-800">
-            Administrative Modules
+        <div className="glass-panel rounded-3xl p-6 border border-white/10 space-y-4 shadow-2xl">
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider pb-3 border-b border-white/10 font-mono">
+            Mission Control Subsystems
           </h2>
 
           <div className="space-y-2">
             {[
-              { name: "User Directory", path: "/admin/users", icon: Users },
-              { name: "Global Documents", path: "/admin/documents", icon: Files },
-              { name: "Model Telemetry", path: "/admin/ai-monitoring", icon: Cpu },
+              { name: "User Directory & Roles", path: "/admin/users", icon: Users },
+              { name: "Global Document Vault", path: "/admin/documents", icon: Files },
+              { name: "Model Inference Telemetry", path: "/admin/ai-monitoring", icon: Cpu },
               { name: "Aggregate Analytics", path: "/admin/analytics", icon: Activity },
-              { name: "User Feedback", path: "/admin/feedback", icon: ShieldCheck },
+              { name: "User Feedback & Rating", path: "/admin/feedback", icon: ShieldCheck },
             ].map((mod, idx) => {
               const ModIcon = mod.icon;
               return (
                 <Link
                   key={idx}
                   to={mod.path}
-                  className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-amber-500/40 text-xs font-semibold text-slate-300 hover:text-white flex items-center justify-between group transition-all"
+                  className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-amber-500/40 text-xs font-semibold text-slate-300 hover:text-white flex items-center justify-between group transition-all hover:bg-white/[0.06]"
                 >
                   <div className="flex items-center gap-2.5">
-                    <ModIcon className="w-4 h-4 text-slate-400 group-hover:text-amber-400" />
+                    <ModIcon className="w-4 h-4 text-slate-400 group-hover:text-amber-400 transition-colors" />
                     <span>{mod.name}</span>
                   </div>
                   <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-400 transition-colors" />
