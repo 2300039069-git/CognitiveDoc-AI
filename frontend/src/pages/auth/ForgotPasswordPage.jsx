@@ -10,12 +10,9 @@ import {
   AlertCircle,
   ShieldCheck,
   Send,
-  Zap,
   Sparkles,
   ExternalLink,
-  RefreshCw,
-  Copy,
-  Check
+  RefreshCw
 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import PublicNavbar from '../../components/layout/PublicNavbar';
@@ -23,17 +20,8 @@ import PublicNavbar from '../../components/layout/PublicNavbar';
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
 
-  // Mode: 'link' (send email reset link) | 'direct' (instant reset on-screen)
-  const [mode, setMode] = useState('link');
   const [linkSent, setLinkSent] = useState(false);
-  const [completed, setCompleted] = useState(false);
-
   const [email, setEmail] = useState('');
-  const [resetUrl, setResetUrl] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
 
@@ -54,7 +42,7 @@ export default function ForgotPasswordPage() {
     return () => clearInterval(interval);
   }, [linkSent, resendTimer]);
 
-  // Method 1: Send Password Reset Link to Email
+  // Send Password Reset Link to Email
   const handleSendResetLink = async (e) => {
     e.preventDefault();
     setError('');
@@ -62,8 +50,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const res = await authService.forgotPasswordLink(email.trim().toLowerCase());
-      setResetUrl(res.reset_url || '');
+      await authService.forgotPasswordLink(email.trim().toLowerCase());
       setLinkSent(true);
       setResendTimer(30);
       setCanResend(false);
@@ -72,7 +59,7 @@ export default function ForgotPasswordPage() {
       if (err.response?.data?.detail) {
         setError(err.response.data.detail);
       } else {
-        setError('Unable to dispatch reset link. Please check your email or use Instant Reset.');
+        setError('Unable to dispatch reset link. Please verify your email address.');
       }
     } finally {
       setLoading(false);
@@ -86,41 +73,12 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const res = await authService.forgotPasswordLink(email.trim().toLowerCase());
-      setResetUrl(res.reset_url || '');
+      await authService.forgotPasswordLink(email.trim().toLowerCase());
       setResendTimer(30);
       setCanResend(false);
       setSuccessMsg(`A fresh password reset link has been sent to ${email.trim()}.`);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to resend link.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Method 2: Instant Direct Password Reset On-Screen
-  const handleDirectReset = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccessMsg('');
-
-    if (newPassword.length < 6) {
-      setError('Password must be at length of least 6 characters.');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match. Please re-enter.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await authService.directResetPassword(email.trim().toLowerCase(), newPassword);
-      setSuccessMsg(res.message || 'Password successfully updated in database!');
-      setCompleted(true);
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to reset password. Please verify your email address.');
     } finally {
       setLoading(false);
     }
@@ -151,10 +109,8 @@ export default function ForgotPasswordPage() {
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
               {linkSent
-                ? 'Check your email or click the instant reset button below'
-                : completed
-                ? 'Your password has been updated'
-                : 'Enter your email to receive a secure password reset link'}
+                ? 'Check your email for the password reset link'
+                : 'Enter your registered email to receive a secure password reset link'}
             </p>
           </div>
 
@@ -173,38 +129,8 @@ export default function ForgotPasswordPage() {
               </div>
             )}
 
-            {/* Mode Switcher */}
-            {!linkSent && !completed && (
-              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 font-mono text-xs font-bold">
-                <button
-                  type="button"
-                  onClick={() => { setMode('link'); setError(''); }}
-                  className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-                    mode === 'link'
-                      ? 'bg-white dark:bg-gradient-to-r dark:from-cyan-600 dark:to-brand-600 text-brand-600 dark:text-white shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Send Reset Link ✉️</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setMode('direct'); setError(''); }}
-                  className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-                    mode === 'direct'
-                      ? 'bg-white dark:bg-gradient-to-r dark:from-cyan-600 dark:to-brand-600 text-brand-600 dark:text-white shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>Direct Reset ⚡</span>
-                </button>
-              </div>
-            )}
-
             {/* View 1: Send Reset Link Form */}
-            {!linkSent && !completed && mode === 'link' && (
+            {!linkSent && (
               <form onSubmit={handleSendResetLink} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -218,7 +144,7 @@ export default function ForgotPasswordPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-slate-900 dark:text-white text-xs outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-slate-900 dark:text-white text-xs outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm font-mono"
                     />
                   </div>
                 </div>
@@ -226,7 +152,7 @@ export default function ForgotPasswordPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn-shimmer w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 hover:from-cyan-500 hover:to-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/25 transition-all disabled:opacity-50"
+                  className="btn-shimmer w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 hover:from-cyan-500 hover:to-brand-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-brand-500/25 transition-all disabled:opacity-50"
                 >
                   {loading ? (
                     <span className="flex items-center gap-2">
@@ -244,78 +170,48 @@ export default function ForgotPasswordPage() {
             )}
 
             {/* View 2: Reset Link Dispatched Confirmation */}
-            {linkSent && !completed && (
-              <div className="space-y-5 text-center py-2">
-                <div className="relative w-20 h-20 mx-auto">
+            {linkSent && (
+              <div className="space-y-6 text-center py-4">
+                <div className="relative w-24 h-24 mx-auto">
                   <div className="absolute inset-0 rounded-3xl bg-cyan-500/20 blur-xl animate-pulse" />
                   <div className="w-full h-full rounded-3xl bg-cyan-500/10 border-2 border-cyan-500/40 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shadow-2xl shadow-cyan-500/20">
-                    <Mail className="w-10 h-10 animate-bounce" />
+                    <Mail className="w-12 h-12 animate-bounce" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
+                  <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">
                     Reset Link Dispatched! ✉️
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                    We dispatched a secure password reset link to <strong className="font-mono text-cyan-600 dark:text-cyan-400">{email}</strong>. Check your <span className="font-bold text-slate-800 dark:text-slate-200">Inbox or Spam</span> folder.
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                    We dispatched a secure password reset link to <strong className="font-mono text-cyan-600 dark:text-cyan-400">{email}</strong>.
                   </p>
                 </div>
 
-                {/* Primary 1-Click Reset Action */}
-                <div className="p-4 rounded-2xl bg-cyan-500/[0.08] border border-cyan-500/30 space-y-3 text-left">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 font-mono">
-                      <Sparkles className="w-4 h-4 text-cyan-500" />
-                      <span>Password Reset Link Ready:</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = resetUrl || `${window.location.origin}/reset-password`;
-                        navigator.clipboard.writeText(url);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2500);
-                      }}
-                      className="text-[11px] font-mono font-bold text-cyan-600 dark:text-cyan-400 hover:underline flex items-center gap-1"
-                    >
-                      {copied ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-500" />
-                          <span className="text-emerald-500">Link Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>Copy Link</span>
-                        </>
-                      )}
-                    </button>
+                <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 text-xs text-slate-600 dark:text-slate-400 space-y-2 text-left">
+                  <div className="flex items-start gap-2 text-slate-800 dark:text-slate-200 font-semibold">
+                    <ShieldCheck className="w-4 h-4 text-cyan-500 flex-shrink-0 mt-0.5" />
+                    <span>Next Steps to Reset Your Password:</span>
                   </div>
-
-                  <a
-                    href={resetUrl || `${window.location.origin}/reset-password`}
-                    className="btn-shimmer w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-xl shadow-brand-500/25 hover:scale-[1.02] active:scale-95 transition-all"
-                  >
-                    <span>Click to Set New Password (1-Click)</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </a>
+                  <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-500 dark:text-slate-400 pl-1">
+                    <li>Open your email inbox or check your <strong className="text-slate-700 dark:text-slate-300">Spam/Junk</strong> folder.</li>
+                    <li>Click the <strong className="text-slate-700 dark:text-slate-300">"Set New Password"</strong> button in the email.</li>
+                    <li>Enter your new password to update your database credentials.</li>
+                  </ol>
                 </div>
 
-                {/* Quick Action Shortcuts */}
-                <div className="space-y-3 pt-1">
+                <div className="space-y-3 pt-2">
                   <a
                     href="https://mail.google.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-2xl border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/[0.04] text-slate-700 dark:text-slate-300 font-bold text-xs transition-all shadow-sm"
+                    className="btn-shimmer w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-xl shadow-brand-500/25 hover:scale-[1.02] active:scale-95 transition-all"
                   >
-                    <Mail className="w-4 h-4 text-rose-500" />
-                    <span>Check Gmail Inbox / Spam</span>
-                    <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Open Gmail Inbox</span>
+                    <ExternalLink className="w-4 h-4" />
                   </a>
 
-                  <div className="flex items-center justify-between px-2 pt-1 text-xs">
+                  <div className="flex items-center justify-between px-2 pt-2 text-xs">
                     <button
                       type="button"
                       onClick={() => setLinkSent(false)}
@@ -332,118 +228,10 @@ export default function ForgotPasswordPage() {
                       className="flex items-center gap-1.5 text-brand-600 dark:text-cyan-400 hover:underline disabled:text-slate-400 font-semibold transition-colors"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                      <span>{canResend ? 'Resend Email' : `Resend in ${resendTimer}s`}</span>
-                    </button>
-                  </div>
-
-                  {/* Direct Reset Tab Switcher fallback */}
-                  <div className="pt-2 border-t border-slate-200 dark:border-white/10">
-                    <button
-                      type="button"
-                      onClick={() => { setLinkSent(false); setMode('direct'); }}
-                      className="w-full py-2.5 px-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold text-brand-600 dark:text-cyan-400 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-all flex items-center justify-center gap-1.5"
-                    >
-                      <Zap className="w-3.5 h-3.5" />
-                      <span>Use Instant On-Screen Reset Instead ⚡</span>
+                      <span>{canResend ? 'Resend Reset Email' : `Resend in ${resendTimer}s`}</span>
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* View 3: Direct Reset Form */}
-            {!linkSent && !completed && mode === 'direct' && (
-              <form onSubmit={handleDirectReset} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Registered Email Address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-slate-900 dark:text-white text-xs outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    New Password (min 6 characters)
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="password"
-                      required
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-slate-900 dark:text-white text-xs outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Confirm New Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="password"
-                      required
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-slate-900 dark:text-white text-xs outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-sm"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-shimmer w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 hover:from-cyan-500 hover:to-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/25 transition-all disabled:opacity-50"
-                >
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                      <span>Updating Password in Database...</span>
-                    </span>
-                  ) : (
-                    <>
-                      <span>Reset Password Directly</span>
-                      <ShieldCheck className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </form>
-            )}
-
-            {/* View 4: Completed Screen */}
-            {completed && (
-              <div className="text-center space-y-4 py-2">
-                <div className="w-16 h-16 mx-auto rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-xl shadow-emerald-500/15">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">Password Updated Successfully!</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Your new password has been stored in MongoDB Atlas database. You can now log in immediately.
-                  </p>
-                </div>
-                <Link
-                  to="/login"
-                  className="btn-shimmer w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 hover:from-cyan-500 hover:to-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/25 transition-all"
-                >
-                  <span>Sign In to Your Account</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
               </div>
             )}
           </div>

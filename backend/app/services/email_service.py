@@ -11,11 +11,16 @@ logger = logging.getLogger(__name__)
 
 def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: str, code: str) -> bool:
     """
-    Dispatches transactional OTP emails using HTTPS REST APIs (Brevo, Resend, SendGrid) and SMTP.
+    Dispatches transactional verification/reset emails using:
+    1. Brevo (Sendinblue) HTTPS API (Port 443 - zero firewall blocks)
+    2. Gmail SMTP SSL on Port 465 (Direct SSL - immune to cloud port blocks)
+    3. Gmail SMTP STARTTLS on Port 587
+    4. Resend Transactional HTTPS API
+    5. SendGrid HTTPS API
     """
     import requests
 
-    # 1. Tier 1: Brevo (Sendinblue) HTTPS API (Delivers to ANY Gmail, Yahoo, Outlook worldwide without domain)
+    # 1. Tier 1: Brevo (Sendinblue) HTTPS REST API (Port 443)
     if BREVO_API_KEY:
         try:
             headers = {
@@ -30,15 +35,64 @@ def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: 
                 "htmlContent": html_content,
                 "textContent": plain_text
             }
-            r = requests.post("https://api.brevo.com/v3/smtp/email", json=payload, headers=headers, timeout=6)
+            r = requests.post("https://api.brevo.com/v3/smtp/email", json=payload, headers=headers, timeout=8)
             if r.status_code in (200, 201, 202):
-                logger.info(f"OTP email dispatched via Brevo HTTPS to {clean_to}")
-                print(f"\n[BREVO SENT] >>> Dispatched OTP email via Brevo to {clean_to}\n")
+                logger.info(f"Email dispatched via Brevo HTTPS to {clean_to}")
+                print(f"\n[BREVO SENT SUCCESS] >>> Dispatched email to {clean_to} (Status {r.status_code})\n")
                 return True
+            else:
+                logger.warning(f"Brevo API response {r.status_code}: {r.text}")
+                print(f"\n[BREVO NOTICE] Brevo returned status {r.status_code}: {r.text}\n")
         except Exception as e:
             logger.warning(f"Brevo dispatch error for {clean_to}: {e}")
+            print(f"\n[BREVO ERROR] {e}\n")
 
-    # 2. Tier 2: Resend Transactional HTTPS API (Port 443)
+    # 2. Tier 2: Gmail SMTP SSL on Port 465 (Direct SSL - works on Render/AWS/Vercel)
+    if SMTP_USER and SMTP_PASSWORD:
+        try:
+            msg = EmailMessage()
+            msg["Subject"] = subject
+            msg["From"] = f"{SMTP_FROM_NAME or 'CognitiveDoc AI'} <{SMTP_USER}>"
+            msg["To"] = clean_to
+            msg["Reply-To"] = SMTP_USER
+            msg["Date"] = formatdate(localtime=True)
+            msg["Message-ID"] = make_msgid(domain="gmail.com")
+            
+            msg["Auto-Submitted"] = "auto-generated"
+            msg["X-Auto-Response-Suppress"] = "All"
+            msg["X-Priority"] = "3"
+            msg["Importance"] = "normal"
+
+            msg.set_content(plain_text)
+            msg.add_alternative(html_content, subtype="html")
+
+            # Direct SSL on Port 465
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=8) as server:
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(msg)
+            
+            logger.info(f"Email dispatched via Gmail SMTP SSL (465) to {clean_to}")
+            print(f"\n[GMAIL SSL 465 SENT] >>> Dispatched email to {clean_to}\n")
+            return True
+        except Exception as e:
+            logger.warning(f"Gmail SSL 465 failed for {clean_to}: {str(e)}")
+            print(f"\n[GMAIL SSL 465 NOTICE] {e}\n")
+
+        # Fallback: STARTTLS on Port 587
+        try:
+            with smtplib.SMTP(SMTP_HOST or "smtp.gmail.com", SMTP_PORT or 587, timeout=8) as server:
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(msg)
+            
+            logger.info(f"Email dispatched via Gmail SMTP TLS (587) to {clean_to}")
+            print(f"\n[GMAIL TLS 587 SENT] >>> Dispatched email to {clean_to}\n")
+            return True
+        except Exception as e:
+            logger.warning(f"Gmail TLS 587 failed for {clean_to}: {str(e)}")
+            print(f"\n[GMAIL TLS 587 NOTICE] {e}\n")
+
+    # 3. Tier 3: Resend Transactional HTTPS API (Port 443)
     if RESEND_API_KEY:
         try:
             import resend
@@ -52,12 +106,13 @@ def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: 
                 "text": plain_text
             })
             logger.info(f"Email dispatched via Resend API to {clean_to}: {r}")
-            print(f"\n[RESEND API SENT] >>> Dispatched OTP email via Resend to {clean_to}\n")
+            print(f"\n[RESEND API SENT] >>> Dispatched email via Resend to {clean_to}\n")
             return True
         except Exception as e:
             logger.warning(f"Resend API dispatch notice for {clean_to}: {e}")
+            print(f"\n[RESEND NOTICE] {e}\n")
 
-    # 3. Tier 3: SendGrid HTTPS REST API (Port 443)
+    # 4. Tier 4: SendGrid HTTPS REST API (Port 443)
     if SENDGRID_API_KEY:
         try:
             headers = {
@@ -72,42 +127,13 @@ def _dispatch_email(clean_to: str, subject: str, plain_text: str, html_content: 
             }
             r = requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers, timeout=6)
             if r.status_code in (200, 202):
-                logger.info(f"OTP email dispatched via SendGrid HTTPS to {clean_to}")
+                logger.info(f"Email dispatched via SendGrid HTTPS to {clean_to}")
+                print(f"\n[SENDGRID SENT] >>> Dispatched email to {clean_to}\n")
                 return True
         except Exception as e:
             logger.warning(f"SendGrid dispatch error for {clean_to}: {e}")
 
-    # 2. Tier 2: Gmail SMTP STARTTLS on Port 587 (Backup)
-    if SMTP_USER and SMTP_PASSWORD:
-        try:
-            msg = EmailMessage()
-            msg["Subject"] = subject
-            msg["From"] = f"{SMTP_FROM_NAME} <{SMTP_USER}>"
-            msg["To"] = clean_to
-            msg["Reply-To"] = SMTP_USER
-            msg["Date"] = formatdate(localtime=True)
-            msg["Message-ID"] = make_msgid(domain="gmail.com")
-            
-            msg["Auto-Submitted"] = "auto-generated"
-            msg["X-Auto-Response-Suppress"] = "All"
-            msg["X-Priority"] = "3"
-            msg["Importance"] = "normal"
-
-            msg.set_content(plain_text)
-            msg.add_alternative(html_content, subtype="html")
-
-            with smtplib.SMTP(SMTP_HOST or "smtp.gmail.com", SMTP_PORT or 587, timeout=6) as server:
-                server.starttls()
-                server.login(SMTP_USER, SMTP_PASSWORD)
-                server.send_message(msg)
-            
-            logger.info(f"OTP email dispatched via Gmail SMTP TLS (587) to {clean_to}")
-            print(f"\n[GMAIL TLS SENT] >>> Dispatched OTP email to {clean_to}\n")
-            return True
-        except Exception as e:
-            logger.warning(f"Gmail TLS 587 failed for {clean_to}: {str(e)}")
-
-    print(f"\n[EMAIL DISPATCH NOTICE] Handled dispatch for {clean_to}\n")
+    print(f"\n[EMAIL DISPATCH NOTICE] All dispatchers completed attempt for {clean_to}\n")
     return False
 
 def send_registration_otp_email(to_email: str, full_name: str, code: str) -> bool:

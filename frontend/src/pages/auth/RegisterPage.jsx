@@ -411,79 +411,50 @@ export default function RegisterPage() {
                 </form>
               )}
 
-              {/* Step 2: Verification Email Dispatched View */}
+              {/* Step 2: Verification Email Dispatched View (Strict Email Link Only) */}
               {step === 2 && (
-                <div className="space-y-5 text-center py-2">
-                  <div className="relative w-20 h-20 mx-auto">
+                <div className="space-y-6 text-center py-4">
+                  <div className="relative w-24 h-24 mx-auto">
                     <div className="absolute inset-0 rounded-3xl bg-cyan-500/20 blur-xl animate-pulse" />
                     <div className="w-full h-full rounded-3xl bg-cyan-500/10 border-2 border-cyan-500/40 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shadow-2xl shadow-cyan-500/20">
-                      <Mail className="w-10 h-10 animate-bounce" />
+                      <Mail className="w-12 h-12 animate-bounce" />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
-                      Verification Link Dispatched! ✉️
+                    <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">
+                      Verification Link Sent! ✉️
                     </h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                      We sent a secure activation link to <strong className="font-mono text-cyan-600 dark:text-cyan-400">{email}</strong>. Check your <span className="font-bold text-slate-800 dark:text-slate-200">Inbox or Spam</span> folder.
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                      We have dispatched a secure account activation link to <strong className="font-mono text-cyan-600 dark:text-cyan-400">{email}</strong>.
                     </p>
                   </div>
 
-                  {/* Primary 1-Click Verification Action */}
-                  <div className="p-4 rounded-2xl bg-cyan-500/[0.08] border border-cyan-500/30 space-y-3 text-left">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 font-mono">
-                        <Sparkles className="w-4 h-4 text-cyan-500" />
-                        <span>Instant Verification Link Ready:</span>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const url = verificationUrl || `${window.location.origin}/verify-email`;
-                          navigator.clipboard.writeText(url);
-                          setCopied(true);
-                          setTimeout(() => setCopied(false), 2500);
-                        }}
-                        className="text-[11px] font-mono font-bold text-cyan-600 dark:text-cyan-400 hover:underline flex items-center gap-1"
-                      >
-                        {copied ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-500" />
-                            <span className="text-emerald-500">Link Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>Copy Link</span>
-                          </>
-                        )}
-                      </button>
+                  <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 text-xs text-slate-600 dark:text-slate-400 space-y-2 text-left">
+                    <div className="flex items-start gap-2 text-slate-800 dark:text-slate-200 font-semibold">
+                      <ShieldCheck className="w-4 h-4 text-cyan-500 flex-shrink-0 mt-0.5" />
+                      <span>Next Steps to Activate Your Account:</span>
                     </div>
-
-                    <a
-                      href={verificationUrl || `${window.location.origin}/verify-email`}
-                      className="btn-shimmer w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-xl shadow-brand-500/25 hover:scale-[1.02] active:scale-95 transition-all"
-                    >
-                      <span>Verify & Launch Workspace (1-Click)</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </a>
+                    <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-500 dark:text-slate-400 pl-1">
+                      <li>Open your email inbox or check your <strong className="text-slate-700 dark:text-slate-300">Spam/Junk</strong> folder.</li>
+                      <li>Click the <strong className="text-slate-700 dark:text-slate-300">"Verify & Activate Account"</strong> button in the email.</li>
+                      <li>Your account will be instantly verified and redirected to your workspace.</li>
+                    </ol>
                   </div>
 
-                  {/* Quick Action Shortcuts */}
-                  <div className="space-y-3 pt-1">
+                  {/* Actions */}
+                  <div className="space-y-3 pt-2">
                     <a
                       href="https://mail.google.com"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-2xl border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/[0.04] text-slate-700 dark:text-slate-300 font-bold text-xs transition-all shadow-sm"
+                      className="btn-shimmer w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-xl shadow-brand-500/25 hover:scale-[1.02] active:scale-95 transition-all"
                     >
-                      <Mail className="w-4 h-4 text-rose-500" />
-                      <span>Check Gmail Inbox / Spam</span>
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Open Gmail Inbox</span>
+                      <ExternalLink className="w-4 h-4" />
                     </a>
 
-                    <div className="flex items-center justify-between px-2 pt-1 text-xs">
+                    <div className="flex items-center justify-between px-2 pt-2 text-xs">
                       <button
                         type="button"
                         onClick={() => setStep(1)}
@@ -500,20 +471,7 @@ export default function RegisterPage() {
                         className="flex items-center gap-1.5 text-brand-600 dark:text-cyan-400 hover:underline disabled:text-slate-400 font-semibold transition-colors"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                        <span>{canResend ? 'Resend Email' : `Resend in ${resendTimer}s`}</span>
-                      </button>
-                    </div>
-
-                    {/* Direct Activate fallback */}
-                    <div className="pt-2 border-t border-slate-200 dark:border-white/10">
-                      <button
-                        type="button"
-                        onClick={handleDirectActivate}
-                        disabled={loading}
-                        className="w-full py-2.5 px-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold text-brand-600 dark:text-cyan-400 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <Zap className="w-3.5 h-3.5" />
-                        <span>Instant Activate (Skip email check) ⚡</span>
+                        <span>{canResend ? 'Resend Verification Email' : `Resend in ${resendTimer}s`}</span>
                       </button>
                     </div>
                   </div>

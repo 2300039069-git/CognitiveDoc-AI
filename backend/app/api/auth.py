@@ -532,8 +532,7 @@ def register_send_link(req: RegisterSendLinkRequest, background_tasks: Backgroun
     
     return {
         "success": True,
-        "message": f"A verification link has been dispatched to {clean_email}. Click the link to activate your account.",
-        "verification_url": verification_url
+        "message": f"A verification link has been dispatched to {clean_email}. Please check your email inbox to activate your account."
     }
 
 @router.post("/verify-email-token", response_model=TokenResponse)
@@ -583,8 +582,7 @@ def forgot_password_link(req: ForgotPasswordLinkRequest, background_tasks: Backg
     
     return {
         "success": True,
-        "message": f"Password reset link has been dispatched to {clean_email}. Please check your inbox.",
-        "reset_url": reset_url
+        "message": f"Password reset link has been dispatched to {clean_email}. Please check your email inbox."
     }
 
 @router.post("/verify-reset-token")
