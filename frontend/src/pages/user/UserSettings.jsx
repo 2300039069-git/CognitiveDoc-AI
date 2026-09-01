@@ -53,18 +53,18 @@ export default function UserSettings() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-12">
+    <div className="max-w-4xl mx-auto space-y-8 pb-12 transition-colors duration-200">
       {/* Header */}
-      <div className="space-y-1 pb-4 border-b border-slate-800">
-        <h1 className="text-2xl font-extrabold text-white">System & AI Settings</h1>
-        <p className="text-xs text-slate-400">
+      <div className="space-y-1 pb-4 border-b border-slate-200/80 dark:border-white/10">
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">System & AI Settings</h1>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Configure default inference behaviors, chunking parameters, and submit model feedback
         </p>
       </div>
 
       {savedToast && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span>Configuration parameters updated and applied to local NLP session.</span>
         </div>
       )}
@@ -72,21 +72,21 @@ export default function UserSettings() {
       {/* Settings Form */}
       <form onSubmit={handleSaveSettings} className="space-y-6">
         {/* NLP Parameters */}
-        <div className="glass-panel rounded-3xl p-6 sm:p-8 border-slate-800 space-y-6">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 pb-2 border-b border-slate-800 flex items-center gap-2">
-            <Sliders className="w-4 h-4 text-brand-400" />
+        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-white/10 space-y-6 shadow-xl">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 pb-2 border-b border-slate-200/80 dark:border-white/10 flex items-center gap-2 font-mono">
+            <Sliders className="w-4 h-4 text-brand-600 dark:text-brand-400" />
             Default NLP & Summarization Presets
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider font-mono">
                 Default Summarization Engine
               </label>
               <select
                 value={defaultSummaryType}
                 onChange={(e) => setDefaultSummaryType(e.target.value)}
-                className="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
+                className="w-full bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 rounded-2xl p-3 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-brand-500 shadow-sm"
               >
                 <option value="abstractive">Abstractive AI (Hugging Face Pipeline)</option>
                 <option value="extractive">Extractive TextRank (Graph Sentence Ranking)</option>
@@ -94,13 +94,13 @@ export default function UserSettings() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider font-mono">
                 Default Summary Target Length
               </label>
               <select
                 value={defaultLength}
                 onChange={(e) => setDefaultLength(e.target.value)}
-                className="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
+                className="w-full bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 rounded-2xl p-3 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-brand-500 shadow-sm"
               >
                 <option value="short">Short (Key Decisive Points)</option>
                 <option value="medium">Medium (Executive Summary Brief)</option>
@@ -111,7 +111,7 @@ export default function UserSettings() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
             <div className="space-y-2">
-              <div className="flex justify-between text-xs font-bold text-slate-300 uppercase tracking-wider">
+              <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider font-mono">
                 <span>RAG Chunk Size ({chunkSize} chars)</span>
               </div>
               <input
@@ -127,7 +127,7 @@ export default function UserSettings() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between text-xs font-bold text-slate-300 uppercase tracking-wider">
+              <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider font-mono">
                 <span>Chunk Overlap Window ({chunkOverlap} chars)</span>
               </div>
               <input
@@ -145,15 +145,15 @@ export default function UserSettings() {
 
           <button
             type="submit"
-            className="px-6 py-2.5 rounded-xl text-xs font-bold bg-brand-600 text-white hover:bg-brand-500 transition-all shadow-md shadow-brand-600/25"
+            className="px-6 py-2.5 rounded-2xl text-xs font-bold bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 dark:from-cyan-500 dark:via-brand-600 dark:to-indigo-600 text-white shadow-xl shadow-brand-500/20 hover:scale-[1.02] active:scale-95 transition-all"
           >
             Save Parameter Defaults
           </button>
         </div>
 
         {/* Appearance & Theme Selector */}
-        <div className="glass-panel rounded-3xl p-6 sm:p-8 border-slate-200 dark:border-slate-800 space-y-6">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400 pb-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-white/10 space-y-6 shadow-xl">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400 pb-2 border-b border-slate-200/80 dark:border-white/10 flex items-center gap-2 font-mono">
             <Sun className="w-4 h-4 text-amber-500" />
             Appearance & Interface Theme
           </h2>
@@ -165,8 +165,8 @@ export default function UserSettings() {
               onClick={() => toggleTheme && theme !== 'light' && toggleTheme()}
               className={`p-5 rounded-2xl border text-left transition-all relative flex flex-col gap-3 group ${
                 theme === 'light'
-                  ? 'bg-brand-50 border-brand-500 ring-2 ring-brand-500/20 shadow-md'
-                  : 'bg-white/80 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  ? 'bg-cyan-500/15 border-brand-500 ring-2 ring-brand-500/20 shadow-md'
+                  : 'bg-white/80 dark:bg-slate-950/60 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
               <div className="flex items-center justify-between">
@@ -180,7 +180,7 @@ export default function UserSettings() {
                   </div>
                 </div>
                 {theme === 'light' && (
-                  <span className="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs shadow-sm">
+                  <span className="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs shadow-sm font-bold">
                     ✓
                   </span>
                 )}
@@ -199,7 +199,7 @@ export default function UserSettings() {
               className={`p-5 rounded-2xl border text-left transition-all relative flex flex-col gap-3 group ${
                 theme === 'dark'
                   ? 'bg-brand-600/15 border-brand-500 ring-2 ring-brand-500/20 shadow-md'
-                  : 'bg-white/80 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  : 'bg-white/80 dark:bg-slate-950/60 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
               <div className="flex items-center justify-between">
@@ -213,7 +213,7 @@ export default function UserSettings() {
                   </div>
                 </div>
                 {theme === 'dark' && (
-                  <span className="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs shadow-sm">
+                  <span className="w-6 h-6 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs shadow-sm font-bold">
                     ✓
                   </span>
                 )}
@@ -229,20 +229,20 @@ export default function UserSettings() {
       </form>
 
       {/* User Feedback Submission Card */}
-      <div className="glass-panel rounded-3xl p-6 sm:p-8 border-slate-800 space-y-6">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 pb-2 border-b border-slate-800 flex items-center gap-2">
-          <MessageSquareHeart className="w-4 h-4 text-rose-400" />
+      <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-white/10 space-y-6 shadow-xl">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 pb-2 border-b border-slate-200/80 dark:border-white/10 flex items-center gap-2 font-mono">
+          <MessageSquareHeart className="w-4 h-4 text-rose-500" />
           Submit User Feedback to Administrators
         </h2>
 
         {feedbackSent ? (
           <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-2">
-            <CheckCircle2 className="w-6 h-6 text-emerald-400 mx-auto" />
-            <p className="text-xs font-bold text-white">Thank you for your feedback!</p>
-            <p className="text-[11px] text-slate-400">Your review has been logged to the Admin Feedback console.</p>
+            <CheckCircle2 className="w-6 h-6 text-emerald-500 dark:text-emerald-400 mx-auto" />
+            <p className="text-xs font-bold text-slate-900 dark:text-white">Thank you for your feedback!</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Your review has been logged to the Admin Feedback console.</p>
             <button
               onClick={() => setFeedbackSent(false)}
-              className="text-xs text-brand-400 font-semibold underline pt-1"
+              className="text-xs text-brand-600 dark:text-brand-400 font-semibold underline pt-1"
             >
               Submit another review
             </button>
@@ -251,11 +251,11 @@ export default function UserSettings() {
           <form onSubmit={handleSendFeedback} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Rating (1 to 5 Stars)</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider font-mono">Rating (1 to 5 Stars)</label>
                 <select
                   value={feedbackRating}
                   onChange={(e) => setFeedbackRating(Number(e.target.value))}
-                  className="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
+                  className="w-full bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 rounded-2xl p-2.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-brand-500 shadow-sm"
                 >
                   <option value={5}>⭐⭐⭐⭐⭐ 5 Stars - Exceptional</option>
                   <option value={4}>⭐⭐⭐⭐ 4 Stars - Very Good</option>
@@ -266,11 +266,11 @@ export default function UserSettings() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Category</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider font-mono">Category</label>
                 <select
                   value={feedbackCategory}
                   onChange={(e) => setFeedbackCategory(e.target.value)}
-                  className="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
+                  className="w-full bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 rounded-2xl p-2.5 text-xs text-slate-900 dark:text-slate-200 focus:outline-none focus:border-brand-500 shadow-sm"
                 >
                   <option value="Summarization Quality">Summarization Quality</option>
                   <option value="RAG Q&A Accuracy">RAG Q&A Accuracy</option>
@@ -282,20 +282,20 @@ export default function UserSettings() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Comments / Suggestions</label>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider font-mono">Comments / Suggestions</label>
               <textarea
                 required
                 rows={3}
                 value={feedbackMessage}
                 onChange={(e) => setFeedbackMessage(e.target.value)}
                 placeholder="Share your experience with model accuracy or feature requests..."
-                className="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
+                className="w-full bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 rounded-2xl p-3 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 shadow-sm"
               />
             </div>
 
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white transition-all flex items-center gap-1.5"
+              className="px-5 py-2.5 rounded-2xl text-xs font-bold bg-slate-900 dark:bg-slate-800 text-white dark:text-slate-200 hover:bg-slate-800 dark:hover:bg-slate-700 hover:text-white transition-all flex items-center gap-1.5 shadow-sm"
             >
               <Send className="w-3.5 h-3.5" />
               <span>Submit Review</span>

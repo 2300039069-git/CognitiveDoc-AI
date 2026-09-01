@@ -185,11 +185,11 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-black relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-black relative overflow-hidden transition-colors duration-200">
       
       {/* Background Mesh */}
       <div className="absolute inset-0 bg-grid-cyber pointer-events-none -z-10" />
-      <div className="absolute top-1/3 right-1/4 w-[600px] h-[500px] aurora-orb-cyan blur-[150px] pointer-events-none -z-10" />
+      <div className="absolute top-1/4 right-1/3 w-[600px] h-[500px] aurora-orb-cyan blur-[150px] pointer-events-none -z-10" />
       <div className="absolute bottom-10 left-10 w-[500px] h-[500px] aurora-orb-purple blur-[140px] pointer-events-none -z-10" />
 
       <PublicNavbar />
@@ -198,36 +198,36 @@ export default function RegisterPage() {
         <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           
           {/* Left Column: Cyber Benefits Card (Hidden on mobile) */}
-          <div className="hidden lg:flex lg:col-span-5 flex-col justify-between p-8 rounded-3xl bg-gradient-to-b from-slate-900/80 to-slate-950/90 border border-white/10 shadow-2xl backdrop-blur-2xl space-y-8">
+          <div className="hidden lg:flex lg:col-span-5 flex-col justify-between p-8 rounded-3xl bg-white/90 dark:bg-gradient-to-b dark:from-slate-900/80 dark:to-slate-950/90 border border-slate-200/90 dark:border-white/10 shadow-xl dark:shadow-2xl backdrop-blur-2xl space-y-8">
             <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-700 dark:text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Zero-Latency Enterprise Onboarding</span>
               </div>
 
-              <h2 className="text-3xl font-extrabold text-white tracking-tight leading-snug">
+              <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-snug">
                 Join the <span className="text-gradient-cyan">CognitiveDoc AI</span> Ecosystem
               </h2>
 
-              <p className="text-sm text-slate-400 leading-relaxed">
+              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 Empower your workflow with private, high-speed document synthesis and RAG vector intelligence.
               </p>
 
               <div className="space-y-3.5 pt-2">
-                <div className="flex items-center gap-3 text-xs text-slate-300">
-                  <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                <div className="flex items-center gap-3 text-xs text-slate-700 dark:text-slate-300">
+                  <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-brand-600 dark:text-cyan-400">
                     <Cpu className="w-4 h-4" />
                   </div>
                   <span>Instant Access to Local Hugging Face Pipelines</span>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-slate-300">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <div className="flex items-center gap-3 text-xs text-slate-700 dark:text-slate-300">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <span>Verified 6-Digit Email OTP Authentication</span>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-slate-300">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                <div className="flex items-center gap-3 text-xs text-slate-700 dark:text-slate-300">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                     <Database className="w-4 h-4" />
                   </div>
                   <span>Persistent MongoDB Atlas Cloud Synchronized Documents</span>
@@ -235,9 +235,9 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-950/80 border border-white/10 flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-400">Step Status:</span>
-              <span className="text-cyan-400 font-bold">
+            <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs font-mono">
+              <span className="text-slate-600 dark:text-slate-400">Step Status:</span>
+              <span className="text-cyan-700 dark:text-cyan-400 font-bold">
                 {step === 1 ? 'Step 1 of 2: Details' : 'Step 2 of 2: OTP Verification'}
               </span>
             </div>
@@ -249,21 +249,21 @@ export default function RegisterPage() {
             {/* Header */}
             <div className="text-center space-y-2 lg:text-left">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 via-brand-500 to-indigo-600 p-0.5 shadow-xl shadow-cyan-500/20 flex items-center justify-center lg:mx-0 mx-auto">
-                <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                  {step === 1 ? <Bot className="w-6 h-6 text-cyan-400" /> : <KeyRound className="w-6 h-6 text-emerald-400" />}
+                <div className="w-full h-full bg-white dark:bg-slate-950 rounded-[14px] flex items-center justify-center">
+                  {step === 1 ? <Bot className="w-6 h-6 text-brand-600 dark:text-cyan-400" /> : <KeyRound className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />}
                 </div>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
                 {step === 1 ? 'Create Your Account' : 'Verify Email Address'}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-400">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                 {step === 1
                   ? 'Enter details to receive your 6-digit email verification code'
                   : `Enter the 6-digit code dispatched to ${email}`}
               </p>
             </div>
 
-            <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 space-y-5 shadow-2xl">
+            <div className="glass-panel rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl">
               
               {step === 1 && (
                 <>
@@ -272,7 +272,7 @@ export default function RegisterPage() {
                     type="button"
                     onClick={handleGoogleSignIn}
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl border border-white/10 hover:border-cyan-500/40 bg-white/[0.04] hover:bg-white/[0.08] text-white text-xs font-bold transition-all shadow-sm"
+                    className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-cyan-500/40 bg-white hover:bg-slate-50 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] text-slate-800 dark:text-white text-xs font-bold transition-all shadow-sm"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -285,10 +285,10 @@ export default function RegisterPage() {
 
                   <div className="relative my-2">
                     <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-white/10"></div>
+                      <div className="w-full border-t border-slate-200 dark:border-white/10"></div>
                     </div>
                     <div className="relative flex justify-center text-[10px] uppercase font-mono font-bold tracking-wider">
-                      <span className="bg-slate-900 px-3 text-slate-500">
+                      <span className="bg-white dark:bg-slate-900 px-3 text-slate-400 dark:text-slate-500">
                         Or register with verified email
                       </span>
                     </div>
@@ -297,15 +297,15 @@ export default function RegisterPage() {
               )}
 
               {error && (
-                <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-2.5 text-xs text-rose-300">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-400" />
+                <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-2.5 text-xs text-rose-600 dark:text-rose-300">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-500 dark:text-rose-400" />
                   <span>{error}</span>
                 </div>
               )}
 
               {successMsg && (
-                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 text-xs text-emerald-300">
-                  <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-400" />
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 text-xs text-emerald-600 dark:text-emerald-300">
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-500 dark:text-emerald-400" />
                   <span>{successMsg}</span>
                 </div>
               )}
@@ -313,86 +313,86 @@ export default function RegisterPage() {
               {step === 1 ? (
                 <form onSubmit={handleSendOTP} className="space-y-3.5">
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wider">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider">
                       Full Name
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="text"
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="e.g. Dhanush Kancharla"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-950/80 border border-white/10 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-100 text-xs sm:text-sm outline-none transition-all font-mono"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 focus:border-brand-500 dark:focus:border-cyan-500 focus:ring-1 focus:ring-brand-500 dark:focus:ring-cyan-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-xs sm:text-sm outline-none transition-all font-mono shadow-sm"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wider">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider">
                       Email Address
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="email"
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="e.g. kancharladhanush2003@gmail.com"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-950/80 border border-white/10 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-100 text-xs sm:text-sm outline-none transition-all font-mono"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 focus:border-brand-500 dark:focus:border-cyan-500 focus:ring-1 focus:ring-brand-500 dark:focus:ring-cyan-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-xs sm:text-sm outline-none transition-all font-mono shadow-sm"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wider">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider">
                       Organization / University
                     </label>
                     <div className="relative">
-                      <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="text"
                         value={organization}
                         onChange={(e) => setOrganization(e.target.value)}
                         placeholder="Enterprise Research Team"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-950/80 border border-white/10 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-100 text-xs sm:text-sm outline-none transition-all font-mono"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 focus:border-brand-500 dark:focus:border-cyan-500 focus:ring-1 focus:ring-brand-500 dark:focus:ring-cyan-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-xs sm:text-sm outline-none transition-all font-mono shadow-sm"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wider">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider">
                         Password
                       </label>
                       <div className="relative">
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                           type="password"
                           required
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-950/80 border border-white/10 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-100 text-xs sm:text-sm outline-none transition-all font-mono"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 focus:border-brand-500 dark:focus:border-cyan-500 focus:ring-1 focus:ring-brand-500 dark:focus:ring-cyan-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-xs sm:text-sm outline-none transition-all font-mono shadow-sm"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wider">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider">
                         Confirm Password
                       </label>
                       <div className="relative">
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                           type="password"
                           required
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-950/80 border border-white/10 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 text-slate-100 text-xs sm:text-sm outline-none transition-all font-mono"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 focus:border-brand-500 dark:focus:border-cyan-500 focus:ring-1 focus:ring-brand-500 dark:focus:ring-cyan-500 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-xs sm:text-sm outline-none transition-all font-mono shadow-sm"
                         />
                       </div>
                     </div>
@@ -401,7 +401,7 @@ export default function RegisterPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="btn-shimmer w-full mt-2 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-brand-600 to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-xl shadow-cyan-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                    className="btn-shimmer w-full mt-2 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 dark:from-cyan-500 dark:via-brand-600 dark:to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-xl shadow-brand-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
@@ -419,11 +419,11 @@ export default function RegisterPage() {
               ) : (
                 <form onSubmit={handleVerifyAndRegister} className="space-y-5">
                   <div>
-                    <label className="block text-xs font-bold text-emerald-400 mb-2 uppercase tracking-wider">
+                    <label className="block text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wider">
                       Enter 6-Digit Email Verification Code
                     </label>
                     <div className="relative">
-                      <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400" />
+                      <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                       <input
                         type="text"
                         maxLength={6}
@@ -431,11 +431,11 @@ export default function RegisterPage() {
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
                         placeholder="123456"
-                        className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-slate-950 border border-emerald-500/40 focus:border-emerald-400 text-white text-center text-xl tracking-[10px] font-mono outline-none transition-all placeholder:text-slate-700 shadow-inner"
+                        className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white dark:bg-slate-950 border border-emerald-500/40 focus:border-emerald-500 text-slate-900 dark:text-white text-center text-xl tracking-[10px] font-mono outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner"
                       />
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-2 text-center">
-                      Code dispatched to <strong className="text-slate-200">{email}</strong>. Check inbox or spam.
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-2 text-center">
+                      Code dispatched to <strong className="text-slate-900 dark:text-slate-200">{email}</strong>. Check inbox or spam.
                     </p>
                   </div>
 
@@ -443,7 +443,7 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={() => setStep(1)}
-                      className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+                      className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors font-medium"
                     >
                       <ArrowLeft className="w-3.5 h-3.5" />
                       <span>Edit Details</span>
@@ -453,7 +453,7 @@ export default function RegisterPage() {
                       type="button"
                       onClick={handleResendOTP}
                       disabled={!canResend || loading}
-                      className="flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 disabled:text-slate-600 transition-colors font-semibold"
+                      className="flex items-center gap-1.5 text-xs text-brand-600 dark:text-cyan-400 hover:text-brand-500 dark:hover:text-cyan-300 disabled:text-slate-400 dark:disabled:text-slate-600 transition-colors font-semibold"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                       <span>{canResend ? 'Resend Code' : `Resend in ${resendTimer}s`}</span>
@@ -480,11 +480,11 @@ export default function RegisterPage() {
                 </form>
               )}
 
-              <div className="pt-3 text-center text-xs text-slate-400 border-t border-white/10">
+              <div className="pt-3 text-center text-xs text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-white/10">
                 Already have an account?{' '}
                 <Link
                   to="/login"
-                  className="text-cyan-400 font-bold hover:text-cyan-300 transition-colors"
+                  className="text-brand-600 dark:text-cyan-400 font-bold hover:text-brand-500 dark:hover:text-cyan-300 transition-colors"
                 >
                   Sign In Here
                 </Link>
