@@ -52,6 +52,14 @@ export const authService = {
     return response.data;
   },
 
+  directResetPassword: async (email, newPassword) => {
+    const response = await api.post('/auth/direct-reset-password', {
+      email,
+      new_password: newPassword
+    });
+    return response.data;
+  },
+
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');

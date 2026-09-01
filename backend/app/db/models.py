@@ -184,12 +184,16 @@ class UserRepository:
     @staticmethod
     def update_password(email: str, password_hash: str) -> bool:
         clean_email = email.lower().strip()
+        import re
 
         # Try MongoDB Atlas
         db = get_mongo_db()
         if db is not None:
             try:
-                res = db.users.update_one({"email": clean_email}, {"$set": {"password_hash": password_hash}})
+                res = db.users.update_one(
+                    {"email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}},
+                    {"$set": {"password_hash": password_hash}}
+                )
                 if res.matched_count > 0:
                     return True
             except Exception:
@@ -198,7 +202,7 @@ class UserRepository:
         # SQLite Fallback
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("UPDATE users SET password_hash = ? WHERE email = ?", (password_hash, clean_email))
+        cursor.execute("UPDATE users SET password_hash = ? WHERE email = ? COLLATE NOCASE", (password_hash, clean_email))
         conn.commit()
         affected = cursor.rowcount > 0
         conn.close()

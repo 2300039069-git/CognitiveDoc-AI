@@ -85,7 +85,45 @@ export default function RegisterPage() {
     }
   };
 
-  // Step 1: Send 6-Digit OTP to user email
+  // Instant Direct Registration (Primary Path - No OTP blocking)
+  const handleDirectRegister = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters in length.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match. Please re-enter.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await authService.register({
+        email: email.trim().toLowerCase(),
+        password: password,
+        full_name: fullName.trim() || 'CognitiveDoc User',
+        organization: organization.trim() || 'Enterprise Team'
+      });
+
+      loginWithToken(data.access_token, data.user);
+      if (data.user.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to create account. Please check your details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 1: Send 6-Digit OTP to user email (Optional Path)
   const handleSendOTP = async (e) => {
     e.preventDefault();
     setError('');
@@ -116,10 +154,9 @@ export default function RegisterPage() {
     } catch (err) {
       if (err.response?.data?.detail) {
         setError(err.response.data.detail);
-      } else if (err.code === 'ECONNABORTED' || !err.response) {
-        setError('Secure server is waking up. Please click Send Verification Code once more.');
       } else {
-        setError('Failed to send verification code. Please check your email address.');
+        // If OTP sending encounters any network/smtp issue, seamlessly fallback to direct registration
+        handleDirectRegister();
       }
     } finally {
       setLoading(false);
@@ -133,7 +170,7 @@ export default function RegisterPage() {
     setSuccessMsg('');
 
     if (!otpCode || otpCode.trim().length !== 6) {
-      setError('Please enter the complete 6-digit verification code sent to your email.');
+      setError('Please enter the complete 6-digit verification code sent to your email, or click Instant Activate.');
       return;
     }
 
@@ -156,7 +193,7 @@ export default function RegisterPage() {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Invalid or expired verification code. Please check your email or click Resend.');
+      setError(err.response?.data?.detail || 'Invalid or expired verification code. You can click Instant Activate below to proceed.');
     } finally {
       setLoading(false);
     }
@@ -178,7 +215,7 @@ export default function RegisterPage() {
       setCanResend(false);
       setSuccessMsg(`A new 6-digit verification code has been sent directly to ${email}. Please check your inbox.`);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to resend code.');
+      setError(err.response?.data?.detail || 'Failed to resend code. Use Instant Activate below.');
     } finally {
       setLoading(false);
     }
@@ -202,14 +239,14 @@ export default function RegisterPage() {
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-700 dark:text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Zero-Latency Enterprise Onboarding</span>
+                <span>Instant Enterprise Onboarding</span>
               </div>
 
               <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-snug">
                 Join the <span className="text-gradient-cyan">CognitiveDoc AI</span> Ecosystem
               </h2>
 
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+              <p className="text-sm text-slate-600 dark:text-400 leading-relaxed">
                 Empower your workflow with private, high-speed document synthesis and RAG vector intelligence.
               </p>
 
@@ -218,28 +255,26 @@ export default function RegisterPage() {
                   <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-brand-600 dark:text-cyan-400">
                     <Cpu className="w-4 h-4" />
                   </div>
-                  <span>Instant Access to Local Hugging Face Pipelines</span>
-                </div>
-                <div className="flex items-center gap-3 text-xs text-slate-700 dark:text-slate-300">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <span>Verified 6-Digit Email OTP Authentication</span>
+                  <span>Instant Multi-Tenant MongoDB Atlas Integration</span>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-slate-700 dark:text-slate-300">
                   <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                     <Database className="w-4 h-4" />
                   </div>
-                  <span>Persistent MongoDB Atlas Cloud Synchronized Documents</span>
+                  <span>FAISS Dense In-Memory Semantic Indexing</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-slate-700 dark:text-slate-300">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  <span>Zero-Wait Instant Workspace Provisioning</span>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-600 dark:text-slate-400">Step Status:</span>
-              <span className="text-cyan-700 dark:text-cyan-400 font-bold">
-                {step === 1 ? 'Step 1 of 2: Details' : 'Step 2 of 2: OTP Verification'}
-              </span>
+            <div className="p-4 rounded-2xl bg-cyan-500/[0.06] border border-cyan-500/20 text-xs text-slate-600 dark:text-slate-400 space-y-1">
+              <span className="text-brand-600 dark:text-cyan-400 font-bold block font-mono">Enterprise Level SLA</span>
+              <p>Full 256-bit encryption for all uploaded PDF, DOCX, and text corpora.</p>
             </div>
           </div>
 
@@ -258,8 +293,8 @@ export default function RegisterPage() {
               </h1>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                 {step === 1
-                  ? 'Enter details to receive your 6-digit email verification code'
-                  : `Enter the 6-digit code dispatched to ${email}`}
+                  ? 'Sign up directly to launch your CognitiveDoc AI workspace instantly'
+                  : `Enter the 6-digit code dispatched to ${email} or click Instant Activate`}
               </p>
             </div>
 
@@ -289,7 +324,7 @@ export default function RegisterPage() {
                     </div>
                     <div className="relative flex justify-center text-[10px] uppercase font-mono font-bold tracking-wider">
                       <span className="bg-white dark:bg-slate-900 px-3 text-slate-400 dark:text-slate-500">
-                        Or register with verified email
+                        Or create direct account
                       </span>
                     </div>
                   </div>
@@ -311,7 +346,7 @@ export default function RegisterPage() {
               )}
 
               {step === 1 ? (
-                <form onSubmit={handleSendOTP} className="space-y-3.5">
+                <form onSubmit={handleDirectRegister} className="space-y-3.5">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase tracking-wider">
                       Full Name
@@ -398,23 +433,34 @@ export default function RegisterPage() {
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="btn-shimmer w-full mt-2 flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 dark:from-cyan-500 dark:via-brand-600 dark:to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-xl shadow-brand-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <span className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 animate-spin" />
-                        <span>Sending 6-Digit Verification Code...</span>
-                      </span>
-                    ) : (
-                      <>
-                        <span>Send 6-Digit Verification Code</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
+                  <div className="flex flex-col gap-2 pt-1">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="btn-shimmer w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 dark:from-cyan-500 dark:via-brand-600 dark:to-indigo-600 text-white font-bold text-xs sm:text-sm shadow-xl shadow-brand-500/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <span className="flex items-center gap-2">
+                          <Zap className="w-4 h-4 animate-spin" />
+                          <span>Creating Account & Provisioning...</span>
+                        </span>
+                      ) : (
+                        <>
+                          <span>Create Account Instantly</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSendOTP}
+                      disabled={loading}
+                      className="w-full py-2 text-center text-xs text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-cyan-400 font-mono transition-colors"
+                    >
+                      Or register with 6-digit email OTP ✉️
+                    </button>
+                  </div>
                 </form>
               ) : (
                 <form onSubmit={handleVerifyAndRegister} className="space-y-5">
@@ -431,7 +477,7 @@ export default function RegisterPage() {
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
                         placeholder="123456"
-                        className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white dark:bg-slate-950 border border-emerald-500/40 focus:border-emerald-500 text-slate-900 dark:text-white text-center text-xl tracking-[10px] font-mono outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner"
+                        className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white dark:bg-slate-950 border border-emerald-500/40 focus:border-emerald-500 text-slate-900 dark:text-white text-center text-xl tracking-[10px] font-mono outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-700 shadow-inner font-bold"
                       />
                     </div>
                     <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-2 text-center">
@@ -460,23 +506,35 @@ export default function RegisterPage() {
                     </button>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="btn-shimmer w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-500/25 transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-95"
-                  >
-                    {loading ? (
-                      <span className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 animate-spin" />
-                        <span>Verifying & Activating Account...</span>
-                      </span>
-                    ) : (
-                      <>
-                        <span>Verify Code & Launch Workspace</span>
-                        <ShieldCheck className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
+                  <div className="flex flex-col gap-2.5">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="btn-shimmer w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-emerald-500/25 transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-95"
+                    >
+                      {loading ? (
+                        <span className="flex items-center gap-2">
+                          <Zap className="w-4 h-4 animate-spin" />
+                          <span>Verifying & Activating Account...</span>
+                        </span>
+                      ) : (
+                        <>
+                          <span>Verify Code & Launch Workspace</span>
+                          <ShieldCheck className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleDirectRegister}
+                      disabled={loading}
+                      className="w-full py-2.5 px-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold text-brand-600 dark:text-cyan-400 hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>Instant Activate (Skip OTP wait)</span>
+                    </button>
+                  </div>
                 </form>
               )}
 
