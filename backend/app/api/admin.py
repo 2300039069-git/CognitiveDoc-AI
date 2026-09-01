@@ -98,6 +98,21 @@ def get_admin_stats(admin: Dict[str, Any] = Depends(require_admin)):
         }
     }
 
+@router.get("/database-health")
+def get_database_health(admin: Dict[str, Any] = Depends(require_admin)):
+    from app.db.mongodb import is_mongo_connected, get_mongo_db
+    mongo_ok = is_mongo_connected()
+    db = get_mongo_db()
+    
+    details = {
+        "engine": "MongoDB Atlas NoSQL Cloud" if mongo_ok else "SQLite Local Fallback",
+        "mongodb_connected": mongo_ok,
+        "database_name": db.name if db is not None else "app_data.db",
+        "collections": db.list_collection_names() if db is not None else [],
+        "user_count": db.users.count_documents({}) if db is not None else 0
+    }
+    return details
+
 @router.get("/users")
 def list_users(admin: Dict[str, Any] = Depends(require_admin)):
     users = UserRepository.get_all_users()
