@@ -4,6 +4,7 @@ import {
   Sliders,
   Moon,
   Sun,
+  Palette,
   Bell,
   CheckCircle2,
   Cpu,
@@ -15,7 +16,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { adminService } from '../../services/adminService';
 
 export default function UserSettings() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   const [defaultSummaryType, setDefaultSummaryType] = useState('abstractive');
   const [defaultLength, setDefaultLength] = useState('medium');
@@ -154,15 +155,15 @@ export default function UserSettings() {
         {/* Appearance & Theme Selector */}
         <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-white/10 space-y-6 shadow-xl">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400 pb-2 border-b border-slate-200/80 dark:border-white/10 flex items-center gap-2 font-mono">
-            <Sun className="w-4 h-4 text-amber-500" />
+            <Palette className="w-4 h-4 text-fuchsia-500" />
             Appearance & Interface Theme
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Light Mode Option */}
             <button
               type="button"
-              onClick={() => toggleTheme && theme !== 'light' && toggleTheme()}
+              onClick={() => setTheme('light')}
               className={`p-5 rounded-2xl border text-left transition-all relative flex flex-col gap-3 group ${
                 theme === 'light'
                   ? 'bg-cyan-500/15 border-brand-500 ring-2 ring-brand-500/20 shadow-md'
@@ -176,7 +177,7 @@ export default function UserSettings() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 dark:text-white">Light Theme</h3>
-                    <p className="text-[11px] text-slate-500">Clean, crisp high-contrast day mode</p>
+                    <p className="text-[11px] text-slate-500">Clean porcelain day mode</p>
                   </div>
                 </div>
                 {theme === 'light' && (
@@ -195,7 +196,7 @@ export default function UserSettings() {
             {/* Dark Mode Option */}
             <button
               type="button"
-              onClick={() => toggleTheme && theme !== 'dark' && toggleTheme()}
+              onClick={() => setTheme('dark')}
               className={`p-5 rounded-2xl border text-left transition-all relative flex flex-col gap-3 group ${
                 theme === 'dark'
                   ? 'bg-brand-600/15 border-brand-500 ring-2 ring-brand-500/20 shadow-md'
@@ -209,7 +210,7 @@ export default function UserSettings() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-900 dark:text-white">Dark Theme</h3>
-                    <p className="text-[11px] text-slate-500">Deep slate & obsidian night mode</p>
+                    <p className="text-[11px] text-slate-500">Obsidian carbon night mode</p>
                   </div>
                 </div>
                 {theme === 'dark' && (
@@ -222,6 +223,43 @@ export default function UserSettings() {
                 <div className="w-1/3 h-2.5 rounded-full bg-brand-400"></div>
                 <div className="w-3/4 h-2 rounded bg-slate-700"></div>
                 <div className="w-1/2 h-2 rounded bg-slate-800"></div>
+              </div>
+            </button>
+
+            {/* Colorful Mode Option */}
+            <button
+              type="button"
+              onClick={() => setTheme('colorful')}
+              className={`p-5 rounded-2xl border text-left transition-all relative flex flex-col gap-3 group ${
+                theme === 'colorful'
+                  ? 'bg-gradient-to-r from-pink-500/20 via-purple-500/20 to-cyan-500/20 border-fuchsia-400 ring-2 ring-fuchsia-400/30 shadow-xl shadow-fuchsia-500/20'
+                  : 'bg-white/80 dark:bg-slate-950/60 border-slate-200 dark:border-white/10 hover:border-fuchsia-400/50'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-pink-500 via-purple-500 to-cyan-500 p-0.5 flex items-center justify-center">
+                    <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                      <Palette className="w-4 h-4 text-fuchsia-400 animate-pulse" />
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400">
+                      Colorful Theme
+                    </h3>
+                    <p className="text-[11px] text-slate-500">Vibrant Cyberpunk Prism Aurora</p>
+                  </div>
+                </div>
+                {theme === 'colorful' && (
+                  <span className="w-6 h-6 rounded-full bg-gradient-to-r from-pink-500 to-cyan-500 text-white flex items-center justify-center text-xs shadow-md font-bold">
+                    ✓
+                  </span>
+                )}
+              </div>
+              <div className="w-full h-16 rounded-xl bg-gradient-to-r from-purple-950/80 via-slate-900 to-cyan-950/80 border border-fuchsia-500/40 p-2 flex flex-col gap-1.5 pointer-events-none shadow-inner">
+                <div className="w-1/3 h-2.5 rounded-full bg-gradient-to-r from-pink-500 to-cyan-400 shadow-sm"></div>
+                <div className="w-3/4 h-2 rounded bg-gradient-to-r from-purple-500/50 to-pink-500/50"></div>
+                <div className="w-1/2 h-2 rounded bg-gradient-to-r from-cyan-500/40 to-indigo-500/40"></div>
               </div>
             </button>
           </div>
