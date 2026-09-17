@@ -36,20 +36,20 @@ export default function UserLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isAdmin, logout } = useAuth();
-  const { selectedLanguage, openLanguageModal } = useLanguage();
+  const { selectedLanguage, openLanguageModal, t } = useLanguage();
 
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Upload Document', path: '/upload', icon: Upload },
-    { name: 'AI Processing', path: '/process', icon: Cpu },
-    { name: 'Summary Result', path: '/summary', icon: FileText },
-    { name: 'AI Chat (RAG Q&A)', path: '/chat', icon: MessageSquare },
-    { name: 'Document Library', path: '/library', icon: FolderKanban },
-    { name: 'Analytics', path: '/analytics', icon: BarChart3 },
-    { name: 'History', path: '/history', icon: History },
-    { name: 'Downloads', path: '/downloads', icon: Download },
-    { name: 'Profile', path: '/profile', icon: User },
-    { name: 'Settings', path: '/settings', icon: Settings },
+    { name: t('nav_dashboard', 'Dashboard'), path: '/dashboard', icon: LayoutDashboard },
+    { name: t('nav_upload', 'Upload Document'), path: '/upload', icon: Upload },
+    { name: t('nav_process', 'AI Processing'), path: '/process', icon: Cpu },
+    { name: t('nav_summary', 'Summary Result'), path: '/summary', icon: FileText },
+    { name: t('nav_chat', 'AI Chat (RAG Q&A)'), path: '/chat', icon: MessageSquare },
+    { name: t('nav_library', 'Document Library'), path: '/library', icon: FolderKanban },
+    { name: t('nav_analytics', 'Analytics'), path: '/analytics', icon: BarChart3 },
+    { name: t('nav_history', 'History'), path: '/history', icon: History },
+    { name: t('nav_downloads', 'Downloads'), path: '/downloads', icon: Download },
+    { name: t('nav_profile', 'Profile'), path: '/profile', icon: User },
+    { name: t('nav_settings', 'Settings'), path: '/settings', icon: Settings },
   ];
 
   const handleLogout = () => {
@@ -162,7 +162,7 @@ export default function UserLayout() {
               className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-xl text-xs font-bold bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 transition-all"
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>Admin Mission Control</span>
+              <span>{t('nav_admin', 'Admin Mission Control')}</span>
             </Link>
           )}
 
@@ -182,7 +182,7 @@ export default function UserLayout() {
               <button
                 onClick={handleLogout}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 dark:text-slate-400 dark:hover:text-rose-400 transition-colors"
-                title="Sign out"
+                title={t('nav_logout', 'Sign out')}
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -206,11 +206,11 @@ export default function UserLayout() {
             </button>
 
             <Link to="/" className="hidden sm:inline text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">
-              Public Portal
+              {t('nav_home', 'Public Portal')}
             </Link>
             <span className="hidden sm:inline text-slate-400 dark:text-slate-600">/</span>
             <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider truncate font-mono">
-              {location.pathname.replace('/', '').replace('-', ' ') || 'Dashboard'}
+              {location.pathname.replace('/', '').replace('-', ' ') || t('nav_dashboard', 'Dashboard')}
             </span>
           </div>
 
@@ -233,7 +233,7 @@ export default function UserLayout() {
               className="btn-shimmer hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 dark:from-cyan-500 dark:to-brand-600 text-white hover:from-cyan-500 hover:to-brand-500 transition-all shadow-lg shadow-brand-500/20"
             >
               <Upload className="w-3.5 h-3.5" />
-              <span>Upload</span>
+              <span>{t('btn_upload', 'Upload')}</span>
             </Link>
 
             <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-white/10 text-xs text-slate-500 dark:text-slate-400">

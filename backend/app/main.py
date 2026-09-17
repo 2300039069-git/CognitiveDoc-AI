@@ -1,3 +1,7 @@
+import os
+import asyncio
+import urllib.request
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,12 +9,45 @@ from app.db.database import init_db
 from app.db.seed import seed_database
 from app.api import auth, documents, ai, admin, analytics
 
+logger = logging.getLogger("cognitivedoc.keepalive")
+
+async def keep_alive_worker():
+    """
+    Continuous background keep-alive task designed specifically for Render free tier.
+    Render automatically spins down web services after 15 minutes of inactivity.
+    This background daemon sends a lightweight heartbeat ping every 10 minutes (600s),
+    ensuring Render stays awake and active 24/7 without shutting down.
+    """
+    await asyncio.sleep(20) # Initial startup buffer
+    
+    render_url = os.getenv("RENDER_EXTERNAL_URL") or os.getenv("APP_URL") or "https://cognitivedoc-ai.onrender.com"
+    health_url = f"{render_url.rstrip('/')}/api/health"
+    logger.info(f"[KEEP-ALIVE] Daemon started. Target ping URL: {health_url}")
+    
+    while True:
+        try:
+            await asyncio.sleep(600) # Ping every 10 minutes (600 seconds)
+            req = urllib.request.Request(
+                health_url,
+                headers={"User-Agent": "CognitiveDoc-AntiSleep-Daemon/2.0"}
+            )
+            with urllib.request.urlopen(req, timeout=15) as response:
+                if response.status in (200, 204):
+                    logger.info(f"[KEEP-ALIVE] Heartbeat success -> {health_url} (HTTP {response.status})")
+        except Exception as exc:
+            # Silently log and continue loop
+            logger.debug(f"[KEEP-ALIVE] Heartbeat notice: {exc}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize database & seed demo accounts
     init_db()
     seed_database()
+    
+    # Launch keep-alive background worker
+    keep_alive_task = asyncio.create_task(keep_alive_worker())
     yield
+    keep_alive_task.cancel()
 
 app = FastAPI(
     title="CognitiveDoc Enterprise AI API",
@@ -43,7 +80,9 @@ def root():
         "version": "2.0.0",
         "docs_url": "/docs",
         "health_check": "/api/health",
-        "frontend_url": "http://localhost:5173",
+        "ping": "/api/ping",
+        "keep_alive": "Active (10-minute heartbeat)",
+        "frontend_url": "https://cognitive-doc-ai.vercel.app",
         "endpoints": {
             "auth": "/api/auth",
             "documents": "/api/documents",
@@ -52,6 +91,12 @@ def root():
             "analytics": "/api/analytics"
         }
     }
+
+@app.get("/ping")
+@app.get("/api/ping")
+def ping_service():
+    """Ultra-lightweight ping endpoint for uptime monitoring and keep-alive heartbeats."""
+    return {"status": "pong", "service": "CognitiveDoc AI Core", "alive": True}
 
 @app.get("/users")
 @app.get("/api/users")

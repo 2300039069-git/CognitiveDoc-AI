@@ -3,7 +3,7 @@ import { Languages, Check, Search, Sparkles, X, Globe, Shield } from 'lucide-rea
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function LanguageSelectionModal() {
-  const { selectedLanguage, supportedLanguages, isModalOpen, closeLanguageModal, selectLanguage } = useLanguage();
+  const { selectedLanguage, supportedLanguages, isModalOpen, closeLanguageModal, selectLanguage, t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [tempSelected, setTempSelected] = useState(selectedLanguage);
 
@@ -35,13 +35,13 @@ export default function LanguageSelectionModal() {
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <span>Select Your Preferred Language</span>
+                <span>{t('modal_language_title', 'Select Your Preferred Language')}</span>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-500/15 text-brand-700 dark:text-cyan-400 border border-brand-500/30">
-                  AI Multilingual Core
+                  {t('tag_ai_core', 'AI Multilingual Core')}
                 </span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                The AI assistant and document Q&A will communicate strictly in your selected language.
+                {t('modal_language_desc', 'The AI assistant and document Q&A will communicate strictly in your selected language.')}
               </p>
             </div>
           </div>
@@ -61,7 +61,7 @@ export default function LanguageSelectionModal() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by language (e.g. Telugu, Hindi, Tamil, English)..."
+              placeholder={t('modal_language_search', 'Search by language (e.g. Telugu, Hindi, Tamil, English)...')}
               className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm"
             />
           </div>
@@ -89,7 +89,7 @@ export default function LanguageSelectionModal() {
                     <span className="font-bold text-sm text-slate-900 dark:text-white">{lang.name}</span>
                     {isSelected && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-700 dark:text-brand-400 border border-brand-500/30">
-                        Active
+                        {t('modal_language_current', 'Active')}
                       </span>
                     )}
                   </div>
@@ -118,19 +118,17 @@ export default function LanguageSelectionModal() {
         {/* Footer */}
         <div className="p-4 sm:p-6 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-950/60 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-            <Globe className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-            <span>Currently Active: <strong className="text-brand-600 dark:text-cyan-400 text-sm font-bold ml-1">{selectedLanguage?.flag} {selectedLanguage?.native} ({selectedLanguage?.name})</strong></span>
+            <Globe className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+            <span>
+              {t('modal_language_current', 'Active Language')}: <strong className="text-slate-900 dark:text-white font-bold">{selectedLanguage?.name} ({selectedLanguage?.native})</strong>
+            </span>
           </div>
-
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              onClick={closeLanguageModal}
-              className="flex-1 sm:flex-initial px-6 py-2.5 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 shadow-sm"
-            >
-              <span>Done</span>
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
-            </button>
-          </div>
+          <button
+            onClick={closeLanguageModal}
+            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 hover:from-cyan-500 hover:to-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/20 transition-all cursor-pointer"
+          >
+            {t('modal_language_apply', 'Save & Apply Language')}
+          </button>
         </div>
       </div>
     </div>

@@ -24,9 +24,11 @@ import {
 import { docService } from '../../services/docService';
 import { analyticsService } from '../../services/analyticsService';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function UserDashboard() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [analytics, setAnalytics] = useState(null);
@@ -67,7 +69,7 @@ export default function UserDashboard() {
 
   const statCards = [
     {
-      label: "Documents Processed",
+      label: t('nav_library', 'Documents Processed'),
       value: analytics?.total_documents || documents.length || 0,
       icon: FileText,
       change: "+100% On-Premise",
@@ -76,7 +78,7 @@ export default function UserDashboard() {
       bg: "bg-cyan-500/10"
     },
     {
-      label: "Reading Time Saved",
+      label: t('nav_analytics', 'Reading Time Saved'),
       value: `${analytics?.time_saved_minutes || 18.5} min`,
       icon: Clock,
       change: `~${analytics?.time_saved_hours || 0.3} hours`,
@@ -85,7 +87,7 @@ export default function UserDashboard() {
       bg: "bg-emerald-500/10"
     },
     {
-      label: "Total Words Analyzed",
+      label: t('desc_summary', 'Total Words Analyzed'),
       value: (analytics?.total_words_analyzed || 14500).toLocaleString(),
       icon: Layers,
       change: `${analytics?.total_pages_analyzed || 12} pages`,
@@ -94,7 +96,7 @@ export default function UserDashboard() {
       bg: "bg-purple-500/10"
     },
     {
-      label: "RAG Queries Executed",
+      label: t('nav_chat', 'RAG Queries Executed'),
       value: analytics?.total_queries || 8,
       icon: MessageSquare,
       change: "Sub-200ms latency",
@@ -115,22 +117,22 @@ export default function UserDashboard() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span>Neural Studio Active • {user?.organization || 'Enterprise Org'}</span>
+            <span>{t('tag_ai_core', 'Neural Studio Active')} • {user?.organization || 'Enterprise Org'}</span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Welcome back, <span className="text-gradient-cyan">{user?.full_name || 'Enterprise User'}</span>
+            {t('title_dashboard', 'Document Intelligence Workspace')}
           </h1>
 
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl leading-relaxed">
-            Upload PDF, DOCX, TXT, or Markdown documents to generate instant abstractive summaries or converse with grounded FAISS RAG citations.
+            {t('desc_dashboard', 'Upload PDF, DOCX, TXT, or Markdown documents to generate instant abstractive summaries or converse with grounded FAISS RAG citations.')}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
           <label className="btn-shimmer cursor-pointer flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-xs sm:text-sm font-bold bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 dark:from-cyan-500 dark:via-brand-600 dark:to-indigo-600 text-white shadow-xl shadow-brand-500/20 hover:scale-[1.02] active:scale-95 transition-all">
             <Upload className="w-4 h-4" />
-            <span>{uploading ? 'Parsing File...' : 'Quick Ingest File'}</span>
+            <span>{uploading ? t('status_processing', 'Parsing File...') : t('btn_upload', 'Quick Ingest File')}</span>
             <input
               type="file"
               accept=".pdf,.docx,.txt,.md"
@@ -143,7 +145,7 @@ export default function UserDashboard() {
             to="/upload"
             className="flex-1 sm:flex-initial text-center px-4 py-3 rounded-2xl text-xs sm:text-sm font-semibold bg-white dark:bg-white/[0.05] hover:bg-slate-50 dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 transition-all backdrop-blur-xl shadow-sm"
           >
-            Custom Ingest
+            {t('btn_upload', 'Custom Ingest')}
           </Link>
         </div>
       </div>
