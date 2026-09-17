@@ -35,13 +35,13 @@ export default function LanguageSelectionModal() {
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <span>{t('modal_language_title', 'Select Your Preferred Language')}</span>
+                <span>Select AI Document Summarization Language</span>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-500/15 text-brand-700 dark:text-cyan-400 border border-brand-500/30">
-                  {t('tag_ai_core', 'AI Multilingual Core')}
+                  Multilingual AI
                 </span>
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t('modal_language_desc', 'The AI assistant and document Q&A will communicate strictly in your selected language.')}
+                Document summaries, executive key takeaways, audio briefings, and Q&A will be generated strictly in your selected language.
               </p>
             </div>
           </div>

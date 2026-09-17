@@ -23,14 +23,14 @@ export default function PublicNavbar() {
   }, []);
 
   const navLinks = [
-    { name: t('nav_home', 'Home'), path: '/' },
-    { name: t('nav_about', 'About'), path: '/about' },
-    { name: t('nav_industries', 'Industries'), path: '/industries' },
-    { name: t('nav_features', 'Features'), path: '/features' },
-    { name: t('nav_how_it_works', 'How It Works'), path: '/how-it-works' },
-    { name: t('nav_tech_stack', 'Tech Stack'), path: '/tech-stack' },
-    { name: t('nav_faq', 'FAQ'), path: '/faq' },
-    { name: t('nav_contact', 'Contact'), path: '/contact' },
+    { name: 'Home', path: '/' },
+    { name: 'About', path: '/about' },
+    { name: 'Industries', path: '/industries' },
+    { name: 'Features', path: '/features' },
+    { name: 'How It Works', path: '/how-it-works' },
+    { name: 'Tech Stack', path: '/tech-stack' },
+    { name: 'FAQ', path: '/faq' },
+    { name: 'Contact', path: '/contact' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -108,10 +108,11 @@ export default function PublicNavbar() {
               {/* Language Switcher */}
               <button
                 onClick={openLanguageModal}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.08] hover:border-cyan-400/40 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-all shadow-sm"
-                title={t('btn_select', 'Select Language')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.08] hover:border-cyan-400/40 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-all shadow-sm cursor-pointer"
+                title="Click to switch Document Summary & AI Language"
               >
                 <span className="text-sm leading-none">{selectedLanguage?.flag || '🌐'}</span>
+                <span className="text-slate-500 dark:text-slate-400 text-[11px] hidden sm:inline">Summary:</span>
                 <span className="text-brand-600 dark:text-cyan-400 font-bold text-xs">{selectedLanguage?.native || 'English'}</span>
                 <Languages className="w-3.5 h-3.5 text-slate-400 hidden sm:inline" />
               </button>
@@ -123,7 +124,7 @@ export default function PublicNavbar() {
                     className="btn-shimmer flex items-center gap-2 px-4 py-2 rounded-xl sm:rounded-full text-xs font-bold bg-gradient-to-r from-brand-600 to-indigo-600 text-white hover:from-brand-500 hover:to-indigo-500 transition-all shadow-lg shadow-brand-500/30 hover:scale-[1.02] active:scale-95"
                   >
                     <LayoutDashboard className="w-3.5 h-3.5" />
-                    <span>{t('nav_dashboard', 'Workspace')}</span>
+                    <span>Workspace</span>
                   </Link>
                   {isAdmin && (
                     <Link
@@ -131,13 +132,13 @@ export default function PublicNavbar() {
                       className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl sm:rounded-full text-xs font-bold bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 transition-all"
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>{t('nav_admin', 'Admin')}</span>
+                      <span>Admin</span>
                     </Link>
                   )}
                   <button
                     onClick={handleLogout}
                     className="p-2 rounded-xl sm:rounded-full border border-slate-200 dark:border-white/10 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 dark:text-slate-400 dark:hover:text-rose-400 transition-colors"
-                    title={t('nav_logout', 'Sign Out')}
+                    title="Sign Out"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                   </button>
@@ -148,13 +149,13 @@ export default function PublicNavbar() {
                     to="/login"
                     className="px-4 py-2 rounded-xl sm:rounded-full text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-transparent hover:border-slate-200 dark:hover:border-white/10 transition-all"
                   >
-                    {t('nav_login', 'Sign In')}
+                    Sign In
                   </Link>
                   <Link
                     to="/register"
                     className="btn-shimmer flex items-center gap-1.5 px-4 py-2 rounded-xl sm:rounded-full text-xs font-bold bg-gradient-to-r from-cyan-600 via-brand-600 to-indigo-600 text-white hover:from-cyan-500 hover:to-brand-500 transition-all shadow-lg shadow-brand-500/25 hover:scale-[1.02] active:scale-95"
                   >
-                    <span>{t('nav_register', 'Get Started')}</span>
+                    <span>Get Started</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -218,7 +219,7 @@ export default function PublicNavbar() {
                       className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-lg shadow-brand-600/30"
                     >
                       <LayoutDashboard className="w-4 h-4" />
-                      <span>{t('nav_dashboard', 'Open Workspace')}</span>
+                      <span>Open Workspace</span>
                     </Link>
                     {isAdmin && (
                       <Link
@@ -227,7 +228,7 @@ export default function PublicNavbar() {
                         className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/30"
                       >
                         <ShieldCheck className="w-4 h-4" />
-                        <span>{t('nav_admin', 'Admin')}</span>
+                        <span>Admin Portal</span>
                       </Link>
                     )}
                     <button
@@ -238,7 +239,7 @@ export default function PublicNavbar() {
                       className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-colors"
                     >
                       <LogOut className="w-4 h-4" />
-                      <span>{t('nav_logout', 'Sign Out')}</span>
+                      <span>Sign Out</span>
                     </button>
                   </>
                 ) : (
@@ -248,14 +249,14 @@ export default function PublicNavbar() {
                       onClick={() => setMobileMenuOpen(false)}
                       className="text-center px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 transition-colors"
                     >
-                      {t('nav_login', 'Sign In')}
+                      Sign In
                     </Link>
                     <Link
                       to="/register"
                       onClick={() => setMobileMenuOpen(false)}
                       className="text-center px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-600 to-brand-600 dark:from-cyan-500 dark:to-brand-600 text-white hover:from-cyan-500 hover:to-brand-500 shadow-md shadow-cyan-500/20 transition-all"
                     >
-                      {t('nav_register', 'Get Started')}
+                      Get Started
                     </Link>
                   </div>
                 )}
