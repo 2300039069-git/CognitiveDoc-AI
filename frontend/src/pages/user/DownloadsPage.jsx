@@ -14,10 +14,12 @@ import {
 } from 'lucide-react';
 import { docService } from '../../services/docService';
 import { aiService } from '../../services/aiService';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function DownloadsPage() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { selectedLanguage } = useLanguage();
 
   useEffect(() => {
     const fetchDocs = async () => {
@@ -45,7 +47,8 @@ export default function DownloadsPage() {
 
   const handleExportSummary = async (doc, format = 'txt') => {
     try {
-      const summary = await aiService.getDocumentSummary(doc.id);
+      const currentLang = selectedLanguage?.code || 'en';
+      const summary = await aiService.getDocumentSummary(doc.id, currentLang);
       let content = '';
 
       if (format === 'json') {

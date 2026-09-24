@@ -837,12 +837,12 @@ class SummaryRepository:
             """
             INSERT INTO summaries (id, doc_id, user_id, summary_type, length_type, executive_summary,
                                    bullet_points, key_takeaways, entities, confidence_score,
-                                   compression_ratio, reading_time_saved_min, model_used, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                   compression_ratio, reading_time_saved_min, model_used, language, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (summary_id, doc_id, user_id, summary_type, length_type, executive_summary,
              json.dumps(bullet_points), json.dumps(key_takeaways), json.dumps(entities or []),
-             confidence_score, compression_ratio, reading_time_saved_min, model_used, created_at)
+             confidence_score, compression_ratio, reading_time_saved_min, model_used, lang, created_at)
         )
         conn.commit()
         conn.close()
@@ -871,6 +871,7 @@ class SummaryRepository:
     @staticmethod
     def get_by_doc_id(doc_id: str, language: Optional[str] = None) -> Optional[Dict[str, Any]]:
         target_lang = language.lower().strip() if language else None
+        from app.services.nlp_engine import is_script_valid
 
         # Try MongoDB Atlas
         db = get_mongo_db()
@@ -881,7 +882,10 @@ class SummaryRepository:
                     query["language"] = target_lang
                 doc = db.summaries.find_one(query, sort=[("created_at", -1)])
                 if doc:
-                    return mongo_doc_to_dict(doc)
+                    res_dict = mongo_doc_to_dict(doc)
+                    if target_lang and not is_script_valid(res_dict.get("executive_summary", ""), target_lang):
+                        return None
+                    return res_dict
                 if target_lang:
                     # Explicit language requested but not found in Atlas
                     return None
@@ -891,13 +895,16 @@ class SummaryRepository:
         # SQLite Fallback
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM summaries WHERE doc_id = ? ORDER BY created_at DESC LIMIT 1", (doc_id,))
+        if target_lang:
+            cursor.execute("SELECT * FROM summaries WHERE doc_id = ? AND language = ? ORDER BY created_at DESC LIMIT 1", (doc_id, target_lang))
+        else:
+            cursor.execute("SELECT * FROM summaries WHERE doc_id = ? ORDER BY created_at DESC LIMIT 1", (doc_id,))
         row = cursor.fetchone()
         conn.close()
         if not row:
             return None
         res = dict_from_row(row)
-        if target_lang and res.get("language") != target_lang:
+        if target_lang and not is_script_valid(res.get("executive_summary", ""), target_lang):
             return None
         return res
 

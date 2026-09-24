@@ -68,6 +68,7 @@ def init_db():
         compression_ratio REAL DEFAULT 0.25,
         reading_time_saved_min REAL DEFAULT 5.0,
         model_used TEXT DEFAULT 'Hybrid-TextRank-T5',
+        language TEXT DEFAULT 'en',
         created_at TEXT NOT NULL,
         FOREIGN KEY(doc_id) REFERENCES documents(id),
         FOREIGN KEY(user_id) REFERENCES users(id)
@@ -157,6 +158,12 @@ def init_db():
         created_at TEXT NOT NULL
     )
     """)
+
+    # Migrations for existing databases
+    try:
+        cursor.execute("ALTER TABLE summaries ADD COLUMN language TEXT DEFAULT 'en'")
+    except Exception:
+        pass
 
     conn.commit()
     conn.close()

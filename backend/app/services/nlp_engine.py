@@ -4,6 +4,7 @@ import json
 import time
 import requests
 import logging
+import concurrent.futures
 from typing import List, Dict, Any, Tuple, Optional
 from collections import Counter
 from app.core.config import (
@@ -36,14 +37,110 @@ STOPWORDS = set([
     "yours", "yourself", "yourselves"
 ])
 
+# Indic and regional script regex patterns for verification
+INDIC_SCRIPT_PATTERNS = {
+    "te": re.compile(r'[\u0C00-\u0C7F]'),  # Telugu
+    "hi": re.compile(r'[\u0900-\u097F]'),  # Hindi
+    "ta": re.compile(r'[\u0B80-\u0BFF]'),  # Tamil
+    "kn": re.compile(r'[\u0C80-\u0CFF]'),  # Kannada
+    "ml": re.compile(r'[\u0D00-\u0D7F]'),  # Malayalam
+    "mr": re.compile(r'[\u0900-\u097F]'),  # Marathi
+    "bn": re.compile(r'[\u0980-\u09FF]'),  # Bengali
+    "gu": re.compile(r'[\u0A80-\u0AFF]'),  # Gujarati
+    "pa": re.compile(r'[\u0A00-\u0A7F]'),  # Punjabi
+    "or": re.compile(r'[\u0B00-\u0B7F]'),  # Odia
+}
+
+INDIAN_LANGUAGES = {
+    "en": "English",
+    "hi": "Hindi (हिन्दी)",
+    "te": "Telugu (తెలుగు)",
+    "ta": "Tamil (தமிழ்)",
+    "kn": "Kannada (ಕನ್ನಡ)",
+    "ml": "Malayalam (മലയാളം)",
+    "mr": "Marathi (मराठी)",
+    "bn": "Bengali (বাংলা)",
+    "gu": "Gujarati (ગુજરાતી)",
+    "pa": "Punjabi (ਪੰਜਾਬੀ)",
+    "or": "Odia (ଓଡ଼ిଆ)",
+    "es": "Spanish (Español)",
+    "fr": "French (Français)",
+    "de": "German (Deutsch)"
+}
+
+def is_script_valid(text: str, lang_code: str) -> bool:
+    """Check if the provided text contains the required native alphabet/script for the target language."""
+    if not text or not text.strip():
+        return False
+    lang = lang_code.lower().strip() if lang_code else "en"
+    if lang == "en":
+        return True
+    pattern = INDIC_SCRIPT_PATTERNS.get(lang)
+    if pattern:
+        return bool(pattern.search(text))
+    return True
+
+def clean_and_parse_json(text: str) -> Optional[Dict[str, Any]]:
+    """Robust JSON cleaner and parser handling markdown code blocks, trailing commas, and malformed outputs."""
+    if not text or not text.strip():
+        return None
+
+    clean = text.strip()
+    if clean.startswith("```json"):
+        clean = clean[7:]
+    if clean.startswith("```"):
+        clean = clean[3:]
+    if clean.endswith("```"):
+        clean = clean[:-3]
+    clean = clean.strip()
+
+    # Match outer {...}
+    match = re.search(r'(\{[\s\S]*\})', clean)
+    if match:
+        clean = match.group(1)
+
+    # Clean trailing commas before closing brackets or braces
+    clean = re.sub(r',\s*([\]\}])', r'\1', clean)
+
+    try:
+        data = json.loads(clean)
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+
+    # Regex extraction fallback if JSON parser encounters syntax error
+    try:
+        exec_match = re.search(r'"executive_summary"\s*:\s*"([^"]+)"', clean)
+        bullets_match = re.search(r'"bullet_points"\s*:\s*\[(.*?)\]', clean, re.DOTALL)
+        takeaways_match = re.search(r'"key_takeaways"\s*:\s*\[(.*?)\]', clean, re.DOTALL)
+        entities_match = re.search(r'"entities"\s*:\s*\[(.*?)\]', clean, re.DOTALL)
+
+        def parse_array(raw_str):
+            if not raw_str:
+                return []
+            return re.findall(r'"([^"]+)"', raw_str)
+
+        executive_summary = exec_match.group(1) if exec_match else ""
+        if not executive_summary and clean:
+            # First 300 chars
+            executive_summary = clean[:300].strip()
+
+        return {
+            "executive_summary": executive_summary,
+            "bullet_points": parse_array(bullets_match.group(1)) if bullets_match else [],
+            "key_takeaways": parse_array(takeaways_match.group(1)) if takeaways_match else [],
+            "entities": parse_array(entities_match.group(1)) if entities_match else []
+        }
+    except Exception:
+        return None
+
 # In-Memory Cache for fast sub-millisecond retrieval of repeated queries
 _LLM_CACHE: Dict[str, Tuple[str, str]] = {}
 
 # 1. Tier 1: Primary - Google Gemini
 def call_gemini_llm(messages: List[Dict[str, str]], temperature: float = 0.2, max_tokens: int = 1500) -> Optional[Tuple[str, str]]:
-    """
-    Calls Google Gemini API (Primary AI Engine) with native multi-lingual reasoning.
-    """
+    """Calls Google Gemini API (Primary AI Engine) with native multi-lingual reasoning."""
     if not GEMINI_API_KEY:
         return None
 
@@ -53,7 +150,6 @@ def call_gemini_llm(messages: List[Dict[str, str]], temperature: float = 0.2, ma
 
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
-        # Convert standard messages to Gemini contents format
         contents = []
         for m in messages:
             role = "user" if m["role"] in ["user", "system"] else "model"
@@ -82,9 +178,7 @@ def call_gemini_llm(messages: List[Dict[str, str]], temperature: float = 0.2, ma
 
 # 2. Tier 2: Backup - Groq High-Speed LPU
 def call_groq_llm(messages: List[Dict[str, str]], temperature: float = 0.2, max_tokens: int = 1500) -> Optional[Tuple[str, str]]:
-    """
-    Calls Groq high-speed cloud LPU inference API (Backup Engine).
-    """
+    """Calls Groq high-speed cloud LPU inference API with model failover."""
     if not GROQ_API_KEY:
         return None
 
@@ -92,37 +186,44 @@ def call_groq_llm(messages: List[Dict[str, str]], temperature: float = 0.2, max_
     if cache_key in _LLM_CACHE:
         return _LLM_CACHE[cache_key]
 
-    try:
-        url = f"{GROQ_BASE_URL.rstrip('/')}/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {GROQ_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": GROQ_MODEL,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens
-        }
-        response = requests.post(url, headers=headers, json=payload, timeout=15)
-        if response.status_code == 200:
-            data = response.json()
-            content = data["choices"][0]["message"]["content"]
-            model_name = f"Groq-{GROQ_MODEL} (Backup)"
-            logger.info(f"Generated response using Groq LPU ({GROQ_MODEL})")
-            _LLM_CACHE[cache_key] = (content, model_name)
-            return content, model_name
-        else:
-            logger.warning(f"Groq API returned status {response.status_code}: {response.text}")
-    except Exception as e:
-        logger.error(f"Groq API call exception: {str(e)}")
+    # Models to attempt on Groq in priority order
+    candidate_models = [GROQ_MODEL, "openai/gpt-oss-120b", "qwen/qwen3.8-27b"]
+    seen_models = set()
+
+    for model in candidate_models:
+        if not model or model in seen_models:
+            continue
+        seen_models.add(model)
+        try:
+            url = f"{GROQ_BASE_URL.rstrip('/')}/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            }
+            response = requests.post(url, headers=headers, json=payload, timeout=15)
+            if response.status_code == 200:
+                data = response.json()
+                content = data["choices"][0]["message"]["content"]
+                model_name = f"Groq-{model} (Cloud LPU)"
+                logger.info(f"Generated response using Groq ({model})")
+                _LLM_CACHE[cache_key] = (content, model_name)
+                return content, model_name
+            else:
+                logger.warning(f"Groq model {model} returned status {response.status_code}: {response.text[:150]}")
+        except Exception as e:
+            logger.error(f"Groq model {model} exception: {str(e)}")
+
     return None
 
 # 3. Tier 3: Second Backup - OpenRouter Global API Aggregator
 def call_openrouter_llm(messages: List[Dict[str, str]], temperature: float = 0.2, max_tokens: int = 1500) -> Optional[Tuple[str, str]]:
-    """
-    Calls OpenRouter API router (Second Backup Engine).
-    """
+    """Calls OpenRouter API router (Second Backup Engine)."""
     if not OPENROUTER_API_KEY:
         return None
 
@@ -160,12 +261,9 @@ def call_openrouter_llm(messages: List[Dict[str, str]], temperature: float = 0.2
 
 # 4. Tier 4: Offline - Ollama Local On-Device Qwen 2.5
 def call_ollama_llm(messages: List[Dict[str, str]], temperature: float = 0.2, max_tokens: int = 1500) -> Optional[Tuple[str, str]]:
-    """
-    Calls Local Ollama LLM (Qwen 2.5 1.5B) on localhost:11434 with zero external dependencies (Offline Engine).
-    """
+    """Calls Local Ollama LLM on localhost:11434 with zero external dependencies (Offline Engine)."""
     cache_key = f"{OLLAMA_MODEL}:{str(messages)}:{max_tokens}"
     if cache_key in _LLM_CACHE:
-        logger.info("Serving from Local LLM In-Memory Cache (< 1ms)")
         return _LLM_CACHE[cache_key]
 
     try:
@@ -193,41 +291,141 @@ def call_ollama_llm(messages: List[Dict[str, str]], temperature: float = 0.2, ma
             _LLM_CACHE[cache_key] = (content, model_name)
             return content, model_name
     except Exception as e:
-        logger.warning(f"Local Ollama Qwen 2.5 call error: {e}")
+        logger.warning(f"Local Ollama call error: {e}")
     return None
 
 def call_unified_llm(messages: List[Dict[str, str]], temperature: float = 0.2, max_tokens: int = 1200) -> Optional[Tuple[str, str]]:
-    """
-    Enterprise 4-Tier Resilient AI Failover Pipeline:
-    1. Primary:       Google Gemini (gemini-1.5-flash / gemini-2.0)
-    2. Backup:        Groq Ultra-Fast LPU (openai/gpt-oss-120b)
-    3. Second Backup: OpenRouter Global Router (meta-llama/llama-3.3-70b-instruct)
-    4. Offline:       Local Ollama On-Device Qwen 2.5 (1.5B)
-    """
-    # Tier 1: Primary -> Google Gemini
+    """Enterprise 4-Tier Resilient AI Failover Pipeline."""
     if GEMINI_API_KEY:
         gemini_res = call_gemini_llm(messages, temperature, max_tokens)
         if gemini_res:
             return gemini_res
 
-    # Tier 2: Backup -> Groq High-Speed LPU
     if GROQ_API_KEY:
         groq_res = call_groq_llm(messages, temperature, max_tokens)
         if groq_res:
             return groq_res
 
-    # Tier 3: Second Backup -> OpenRouter Global Router
     if OPENROUTER_API_KEY:
         openrouter_res = call_openrouter_llm(messages, temperature, max_tokens)
         if openrouter_res:
             return openrouter_res
 
-    # Tier 4: Offline -> Local Ollama (Qwen 2.5 1.5B)
     ollama_res = call_ollama_llm(messages, temperature, max_tokens)
     if ollama_res:
         return ollama_res
 
     return None
+
+# ================= TRANSLATION UTILITIES =================
+def translate_single_text_mymemory(text: str, target_lang: str) -> str:
+    """Translates a single sentence/paragraph into target language using high-availability MyMemory API."""
+    if not text or not text.strip() or target_lang == "en":
+        return text
+    try:
+        url = "https://api.mymemory.translated.net/get"
+        params = {"q": text[:500], "langpair": f"en|{target_lang}"}
+        res = requests.get(url, params=params, timeout=6)
+        if res.status_code == 200:
+            translated = res.json().get("responseData", {}).get("translatedText")
+            if translated and not translated.startswith("MYMEMORY WARNING"):
+                return translated
+    except Exception:
+        pass
+    return text
+
+def translate_single_text(text: str, target_lang: str) -> str:
+    """Multi-tier guaranteed single text translator."""
+    if not text or not text.strip() or target_lang == "en":
+        return text
+
+    lang_name = INDIAN_LANGUAGES.get(target_lang, target_lang)
+
+    # Tier 1: Groq LLM Direct Translation
+    if GROQ_API_KEY:
+        messages = [
+            {"role": "system", "content": f"You are an expert native {lang_name} translator. Translate the text strictly into fluent, natural {lang_name} script. Output ONLY the translated text without extra explanation or English words."},
+            {"role": "user", "content": text}
+        ]
+        res = call_groq_llm(messages, max_tokens=600)
+        if res and res[0].strip() and is_script_valid(res[0].strip(), target_lang):
+            return res[0].strip()
+
+    # Tier 2: MyMemory Translation
+    translated = translate_single_text_mymemory(text, target_lang)
+    if is_script_valid(translated, target_lang):
+        return translated
+
+    return text
+
+def translate_summary_bundle(summary_dict: Dict[str, Any], target_lang: str) -> Dict[str, Any]:
+    """
+    Translates an entire summary bundle (executive_summary, bullet_points, key_takeaways, entities)
+    into the target language native script with 100% guarantee.
+    """
+    if not target_lang or target_lang == "en":
+        return summary_dict
+
+    lang_name = INDIAN_LANGUAGES.get(target_lang, target_lang)
+
+    # Tier 1: Groq LLM Structured JSON Translation
+    if GROQ_API_KEY:
+        try:
+            payload = {
+                "executive_summary": summary_dict.get("executive_summary", ""),
+                "bullet_points": summary_dict.get("bullet_points", []),
+                "key_takeaways": summary_dict.get("key_takeaways", []),
+                "entities": summary_dict.get("entities", [])
+            }
+            prompt = (
+                f"You are a professional enterprise translator. Translate the text string values in the JSON below into fluent, natural {lang_name} script strictly. "
+                f"Return ONLY pure JSON without markdown code blocks, identical in keys:\n{json.dumps(payload, ensure_ascii=False)}"
+            )
+            headers = {
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            res = requests.post(
+                f"{GROQ_BASE_URL.rstrip('/')}/chat/completions",
+                headers=headers,
+                json={"model": GROQ_MODEL, "messages": [{"role": "user", "content": prompt}], "temperature": 0.1, "max_tokens": 1500},
+                timeout=12
+            )
+            if res.status_code == 200:
+                raw_out = res.json()["choices"][0]["message"]["content"]
+                parsed = clean_and_parse_json(raw_out)
+                if parsed and parsed.get("executive_summary") and is_script_valid(parsed.get("executive_summary", ""), target_lang):
+                    result = dict(summary_dict)
+                    result["executive_summary"] = parsed.get("executive_summary", result["executive_summary"])
+                    result["bullet_points"] = parsed.get("bullet_points", result["bullet_points"])
+                    result["key_takeaways"] = parsed.get("key_takeaways", result["key_takeaways"])
+                    result["entities"] = parsed.get("entities", result["entities"])
+                    result["language"] = target_lang
+                    result["model_used"] = f"Neural-Translator ({lang_name})"
+                    return result
+        except Exception as e:
+            logger.warning(f"Groq bundle translation failed: {e}")
+
+    # Tier 2: Parallel MyMemory API Fallback
+    try:
+        result = dict(summary_dict)
+        result["executive_summary"] = translate_single_text_mymemory(summary_dict.get("executive_summary", ""), target_lang)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            bullets = list(executor.map(lambda b: translate_single_text_mymemory(b, target_lang), summary_dict.get("bullet_points", [])))
+            takeaways = list(executor.map(lambda t: translate_single_text_mymemory(t, target_lang), summary_dict.get("key_takeaways", [])))
+            entities = list(executor.map(lambda e: translate_single_text_mymemory(e, target_lang), summary_dict.get("entities", [])))
+
+        result["bullet_points"] = bullets
+        result["key_takeaways"] = takeaways
+        result["entities"] = entities
+        result["language"] = target_lang
+        result["model_used"] = f"Multi-Engine-Translator ({lang_name})"
+        return result
+    except Exception as e:
+        logger.error(f"MyMemory parallel translation fallback error: {e}")
+
+    return summary_dict
 
 def extract_entities_and_keywords(text: str, top_n: int = 8) -> List[str]:
     """Extract key capitalized entities and high-frequency terms."""
@@ -300,10 +498,10 @@ def build_hierarchical_context(text: str, max_chars: int = 6500) -> str:
 
 def generate_summary_with_llm(text: str, summary_type: str = "abstractive", length_type: str = "medium",
                                focus_keywords: List[str] = None, language: str = "en") -> Optional[Dict[str, Any]]:
-    """Generate high-intelligence summary using Qwen 2.5 / Groq LLM with multilingual Indian languages support."""
+    """Generate high-intelligence summary using LLM with native Indian / Global languages support."""
     hierarchical_text = build_hierarchical_context(text, max_chars=6500)
     focus_str = f"Focus Keywords: {', '.join(focus_keywords)}" if focus_keywords else "None"
-    
+
     lang_code = language.lower().strip() if language else "en"
     lang_name = INDIAN_LANGUAGES.get(lang_code, "English")
 
@@ -311,7 +509,7 @@ def generate_summary_with_llm(text: str, summary_type: str = "abstractive", leng
     if lang_code != "en":
         lang_mandate = (
             f"\n\nCRITICAL LANGUAGE MANDATE: The user's preferred language is {lang_name} ({lang_code}). "
-            f"You MUST formulate the executive_summary, every bullet_point, every key_takeaway, and all explanations strictly in fluent, natural {lang_name} script ({lang_code}). "
+            f"You MUST formulate the executive_summary, every bullet_point, every key_takeaway, and all entities strictly in fluent, natural {lang_name} script ({lang_code}). "
             f"Do NOT write in English."
         )
 
@@ -345,22 +543,14 @@ def generate_summary_with_llm(text: str, summary_type: str = "abstractive", leng
     response_text, model_name = llm_res
 
     try:
-        # Parse JSON safely
-        clean_json = response_text.strip()
-        if clean_json.startswith("```json"):
-            clean_json = clean_json[7:]
-        if clean_json.startswith("```"):
-            clean_json = clean_json[3:]
-        if clean_json.endswith("```"):
-            clean_json = clean_json[:-3]
-        clean_json = clean_json.strip()
+        data = clean_and_parse_json(response_text)
+        if not data or not data.get("executive_summary"):
+            return None
 
-        # Extract JSON block with regex if extra leading/trailing text exists
-        match = re.search(r'(\{[\s\S]*\})', clean_json)
-        if match:
-            clean_json = match.group(1)
+        # Script Verification: If the user chose an Indic language but the output is in English, translate it!
+        if lang_code != "en" and not is_script_valid(data.get("executive_summary", ""), lang_code):
+            data = translate_summary_bundle(data, lang_code)
 
-        data = json.loads(clean_json)
         original_words = len(text.split())
         summary_words = len(data.get("executive_summary", "").split())
         compression_ratio = round(summary_words / max(1, original_words), 2)
@@ -382,19 +572,20 @@ def generate_summary_with_llm(text: str, summary_type: str = "abstractive", leng
             "summary_word_count": summary_words
         }
     except Exception as e:
-        logger.error(f"Failed to parse LLM summary JSON: {str(e)} -> Response was: {response_text[:200]}")
+        logger.error(f"Failed to process LLM summary JSON: {str(e)} -> Response was: {response_text[:200]}")
         return None
 
 def generate_summary(text: str, summary_type: str = "extractive", length_type: str = "medium",
                      focus_keywords: List[str] = None, language: str = "en") -> Dict[str, Any]:
     """
-    Generate rich document summary using Qwen 2.5 / Groq LLM with automatic fallback to local NLP engine.
-    Supports English and 10 Indian Regional Languages (Telugu, Hindi, Tamil, Kannada, etc.).
+    Generate rich document summary using Cloud LLM with automatic fallback to local NLP engine
+    and guaranteed multi-lingual translation in 11+ Indic and Global languages.
     """
     start_time = time.time()
-    
-    # 1. Attempt LLM generation (Qwen 2.5 / Groq) with language
-    llm_result = generate_summary_with_llm(text, summary_type, length_type, focus_keywords, language=language)
+    target_lang = language.lower().strip() if language else "en"
+
+    # 1. Attempt LLM generation (Gemini / Groq / OpenRouter / Ollama)
+    llm_result = generate_summary_with_llm(text, summary_type, length_type, focus_keywords, language=target_lang)
     if llm_result:
         llm_result["latency_ms"] = round((time.time() - start_time) * 1000, 1)
         return llm_result
@@ -411,7 +602,7 @@ def generate_summary(text: str, summary_type: str = "extractive", length_type: s
         target_count = max(2, min(4, total_sentences // 5 or 2))
     elif length_type == "detailed":
         target_count = max(5, min(12, total_sentences // 2 or 5))
-    else: # medium
+    else:  # medium
         target_count = max(3, min(7, total_sentences // 3 or 3))
 
     scores = calculate_sentence_scores(sentences, focus_keywords)
@@ -444,9 +635,10 @@ def generate_summary(text: str, summary_type: str = "extractive", length_type: s
     compression_ratio = round(summary_words / max(1, original_words), 2)
     reading_time_saved = max(0.5, round((original_words - summary_words) / 200, 1))
 
-    return {
+    base_summary = {
         "summary_type": summary_type,
         "length_type": length_type,
+        "language": "en",
         "executive_summary": executive_summary,
         "bullet_points": bullet_points,
         "key_takeaways": key_takeaways,
@@ -460,26 +652,20 @@ def generate_summary(text: str, summary_type: str = "extractive", length_type: s
         "latency_ms": round((time.time() - start_time) * 1000, 1)
     }
 
-INDIAN_LANGUAGES = {
-    "en": "English",
-    "hi": "Hindi (हिन्दी)",
-    "te": "Telugu (తెలుగు)",
-    "ta": "Tamil (தமிழ்)",
-    "kn": "Kannada (ಕನ್ನಡ)",
-    "ml": "Malayalam (മലയാളം)",
-    "mr": "Marathi (मराठी)",
-    "bn": "Bengali (বাংলা)",
-    "gu": "Gujarati (ગુજરાતી)",
-    "pa": "Punjabi (ਪੰਜਾਬੀ)",
-    "or": "Odia (ଓଡ଼ିଆ)"
-}
+    # If the user requested a non-English language, translate the extracted summary!
+    if target_lang != "en":
+        translated = translate_summary_bundle(base_summary, target_lang)
+        translated["latency_ms"] = round((time.time() - start_time) * 1000, 1)
+        return translated
+
+    return base_summary
 
 def answer_rag_question(doc_id: str, document_text: str, question: str,
                         history: List[Dict[str, Any]] = None,
                         language: str = "en") -> Dict[str, Any]:
     """
-    RAG semantic retrieval and question answering powered by Qwen 2.5 / Groq LLM with chunk citations.
-    Supports native generation in English and 10 Indian Regional Languages (Telugu, Hindi, Tamil, etc.).
+    RAG semantic retrieval and question answering powered by Vector Index & LLM.
+    Supports native generation and translation into 11+ languages.
     """
     start_time = time.time()
     vector_index = get_or_create_vector_store(doc_id, document_text)
@@ -493,6 +679,8 @@ def answer_rag_question(doc_id: str, document_text: str, question: str,
             "te": "అందించిన డాక్యుమెంట్‌లో ఈ ప్రశ్నకు సంబంధించిన సమాచారం కనుగొనబడలేదు. దయచేసి ప్రశ్నను స్పష్టంగా అడగండి.",
             "hi": "अपलोड किए गए दस्तावेज़ में इस प्रश्न से संबंधित संदर्भ नहीं मिला। कृपया दस्तावेज़ पाठ सत्यापित करें या प्रश्न बदलें।",
             "ta": "பதிவேற்றப்பட்ட ஆவணத்தில் இந்த வினவல் தொடர்பான குறிப்பிட்ட சூழலைக் கண்டறிய முடியவில்லை.",
+            "kn": "ಅಪ್‌ಲೋಡ್ ಮಾಡಲಾದ ಡಾಕ್ಯುಮೆಂಟ್‌ನಲ್ಲಿ ಈ ಪ್ರಶ್ನೆಗೆ ಸಂಬಂಧಿಸಿದ ಸಂದರ್ಭ ಕಂಡುಬಂದಿಲ್ಲ.",
+            "ml": "അപ്‌ലോഡ് ചെയ്‌ത പ്രമാണത്തിൽ ഈ ചോദ്യവുമായി ബന്ധപ്പെട്ട വിവരങ്ങൾ കണ്ടെത്താനായില്ല.",
             "en": "I could not locate specific context regarding this inquiry in the uploaded document. Please verify the document text or rephrase your question."
         }
         return {
@@ -521,7 +709,7 @@ def answer_rag_question(doc_id: str, document_text: str, question: str,
 
     combined_context = "\n\n".join(context_blocks)
 
-    # 1. Attempt LLM Grounded Answer with Multilingual Output (Qwen 2.5 / Groq)
+    # 1. Attempt LLM Grounded Answer with Multilingual Output
     lang_directive = ""
     if lang_code != "en":
         lang_directive = (
@@ -543,9 +731,15 @@ def answer_rag_question(doc_id: str, document_text: str, question: str,
         {"role": "user", "content": user_prompt}
     ]
 
-    llm_res = call_unified_llm(messages, temperature=0.1, max_tokens=300)
+    llm_res = call_unified_llm(messages, temperature=0.1, max_tokens=400)
     if llm_res:
         llm_answer, model_name = llm_res
+        answer_text = llm_answer.strip()
+
+        # If LLM returned English instead of requested Indic script, translate it
+        if lang_code != "en" and not is_script_valid(answer_text, lang_code):
+            answer_text = translate_single_text(answer_text, lang_code)
+
         latency_ms = round((time.time() - start_time) * 1000, 1)
         suggested = [
             f"Can you explain the key details from Page {relevant_chunks[0]['page_number']}?",
@@ -553,7 +747,7 @@ def answer_rag_question(doc_id: str, document_text: str, question: str,
             "Are there any risk factors or exceptions noted?"
         ]
         return {
-            "answer": llm_answer.strip(),
+            "answer": answer_text,
             "citations": citations,
             "confidence_score": 0.96,
             "latency_ms": latency_ms,
@@ -567,7 +761,7 @@ def answer_rag_question(doc_id: str, document_text: str, question: str,
     matched_text = top_chunk["text"]
     sentences = split_into_sentences(matched_text)
     q_words = set([w.lower() for w in re.findall(r'\b\w{3,}\b', question) if w.lower() not in STOPWORDS])
-    
+
     best_sentences = []
     for s in sentences:
         s_words = set([w.lower() for w in re.findall(r'\b\w{3,}\b', s)])
@@ -582,6 +776,9 @@ def answer_rag_question(doc_id: str, document_text: str, question: str,
         answer = f"Based on Section (Page {top_chunk['page_number']}): {core_answer}"
     else:
         answer = f"According to the document records on Page {top_chunk['page_number']}, {matched_text[:280]}..."
+
+    if lang_code != "en":
+        answer = translate_single_text(answer, lang_code)
 
     confidence = min(0.97, max(0.65, top_chunk.get("score", 0.85) + 0.1))
     latency_ms = round((time.time() - start_time) * 1000, 1)

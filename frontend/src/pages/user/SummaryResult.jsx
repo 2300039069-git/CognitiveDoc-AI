@@ -192,7 +192,9 @@ export default function SummaryResult() {
     return (
       <div className="min-h-[400px] flex flex-col items-center justify-center text-slate-400 gap-3">
         <Zap className="w-8 h-8 text-brand-500 animate-spin" />
-        <p className="text-sm font-medium">Synthesizing document summary & takeaways...</p>
+        <p className="text-sm font-medium">
+          Synthesizing document summary in <span className="text-brand-600 dark:text-cyan-400 font-bold">{selectedLanguage?.flag} {selectedLanguage?.native} ({selectedLanguage?.name})</span>...
+        </p>
       </div>
     );
   }
