@@ -18,10 +18,13 @@ async def keep_alive_worker():
     This background daemon sends a lightweight heartbeat ping every 10 minutes (600s),
     ensuring Render stays awake and active 24/7 without shutting down.
     """
-    await asyncio.sleep(20) # Initial startup buffer
-    
-    render_url = os.getenv("RENDER_EXTERNAL_URL") or os.getenv("APP_URL") or "https://cognitivedoc-ai.onrender.com"
-    health_url = f"{render_url.rstrip('/')}/api/health"
+    space_host = os.getenv("SPACE_HOST")
+    if space_host:
+        target_base = f"https://{space_host}"
+    else:
+        target_base = os.getenv("RENDER_EXTERNAL_URL") or os.getenv("APP_URL") or "https://cognitivedoc-ai.onrender.com"
+        
+    health_url = f"{target_base.rstrip('/')}/api/health"
     logger.info(f"[KEEP-ALIVE] Daemon started. Target ping URL: {health_url}")
     
     while True:
