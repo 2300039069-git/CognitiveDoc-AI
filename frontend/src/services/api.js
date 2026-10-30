@@ -3,8 +3,9 @@ import axios from 'axios';
 // Using relative '/api' route allows Vite to proxy requests seamlessly
 // whether accessed from localhost, local Wi-Fi, or a global public tunnel across different networks!
 const getApiBaseUrl = () => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && !envUrl.includes('cognitivedoc-ai.onrender.com')) {
+    return envUrl;
   }
   // In development (localhost), Vite proxies '/api' to local backend
   if (import.meta.env.DEV) {
