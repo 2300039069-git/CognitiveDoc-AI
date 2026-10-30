@@ -47,10 +47,14 @@ async def lifespan(app: FastAPI):
     init_db()
     seed_database()
     
-    # Launch keep-alive background worker
-    keep_alive_task = asyncio.create_task(keep_alive_worker())
+    # Launch keep-alive background worker only if explicitly enabled
+    # Leaving it disabled preserves Render's 750 free hours so it never runs out!
+    keep_alive_task = None
+    if os.getenv("ENABLE_KEEP_ALIVE", "false").lower() in ("true", "1", "yes"):
+        keep_alive_task = asyncio.create_task(keep_alive_worker())
     yield
-    keep_alive_task.cancel()
+    if keep_alive_task:
+        keep_alive_task.cancel()
 
 app = FastAPI(
     title="CognitiveDoc Enterprise AI API",
