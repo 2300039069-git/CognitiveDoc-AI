@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://cognitivedoc-ai.onrender.com/api/:path*"
+      "destination": "https://cognitivedoc-ai-5g3x.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",

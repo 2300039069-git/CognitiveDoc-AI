@@ -11,7 +11,7 @@ const getApiBaseUrl = () => {
     return '/api';
   }
   // In production (Vercel), default directly to live Render backend
-  return 'https://cognitivedoc-ai.onrender.com/api';
+  return 'https://cognitivedoc-ai-5g3x.onrender.com/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
